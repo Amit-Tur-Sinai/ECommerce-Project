@@ -12,8 +12,10 @@ IGNORE_COLS = [
 
 def get_event_probabilities(city_name: str) -> dict:
     """
-    Returns probability predictions for has_cold, has_fog, has_storm, has_heat
+    Returns probability predictions for cold, fog, storm, heat events
     for the given city based on yesterday's weather and recent history.
+    
+    Returns a dictionary with keys: "cold", "fog", "storm", "heat"
     """
     # 1. Get features for the city (does NOT add to DB)
     df = get_features_for_city(city_name)
@@ -40,4 +42,5 @@ def get_event_probabilities(city_name: str) -> dict:
         prob = model.predict_proba(X_model)[0][1]  # probability of class 1
         results[target] = round(float(prob), 4)
 
-    return results
+    # Transform keys from "has_cold" -> "cold" for API consistency
+    return {k.replace("has_", ""): v for k, v in results.items()}
