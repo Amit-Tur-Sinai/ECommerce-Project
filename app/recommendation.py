@@ -3,7 +3,6 @@ import os
 from openrouter import OpenRouter
 from typing import Dict, Tuple, List
 
-# --- Your existing RECOMMENDATION_MAP and Helper Functions remain the same ---
 RECOMMENDATION_MAP = {
     ("cold", "butcher_shop"): {
         "risk_level": "medium",
@@ -35,7 +34,6 @@ def get_active_risk_payloads(binary_risk, probabilities, store_type):
             })
     return payloads
 
-# 2. UPDATED QWEN CALL FOR INTERNATIONAL REGION
 def request_qwen_explanation(payload: Dict) -> str:
     prompt = f"""
     You are a business risk advisor. Explain this weather risk assessment:
@@ -45,9 +43,12 @@ def request_qwen_explanation(payload: Dict) -> str:
     Limit the response to a single paragraph. The style should be professional and friendly.
     """
 
+    with open("../recommendation_api_key.txt") as api_file:
+        key = api_file.readline()
+
     try:
         with OpenRouter(
-            api_key = "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"
+            api_key = key
         ) as client:
             response = client.chat.send(
                 model="qwen/qwen-2.5-vl-7b-instruct:free",
@@ -60,15 +61,29 @@ def request_qwen_explanation(payload: Dict) -> str:
     except Exception as e:
         return f"Connection Error: {e}"
 
-# 3. EXECUTION
-if True:
+def generate_recommendations(probabilities: Dict[str, float], store_type: str = "butcher_shop") -> List[Dict]:
+    """
+    Generate recommendations based on climate event probabilities.
+    """
+    # Simple binary filter (0.5 threshold)
+    active_risks = {k: v >= 0.5 for k, v in probabilities.items()}
+    payloads = get_active_risk_payloads(active_risks, probabilities, store_type)
+
+    results = []
+    for payload in payloads:
+        explanation = request_qwen_explanation(payload)
+        results.append({
+            "climate_event": payload["climate_event"],
+            "risk_level": payload["action_plan"]["risk_level"],
+            "recommendations": payload["action_plan"]["recommendations"],
+            "explanation": explanation
+        })
+    return results
+
+if __name__ == "__main__":
     climate_probs = {"cold": 0.62, "heat": 0.81}
-    store = "butcher_shop"
+    results = generate_recommendations(climate_probs)
 
-    # Simple binary filter
-    active_risks = {k: v >= 0.5 for k, v in climate_probs.items()}
-    payloads = get_active_risk_payloads(active_risks, climate_probs, store)
-
-    for p in payloads:
-        print(f"\n--- ADVICE FOR {p['climate_event'].upper()} ---")
-        print(request_qwen_explanation(p))
+    for r in results:
+        print(f"\n--- ADVICE FOR {r['climate_event'].upper()} ---")
+        print(r['explanation'])
