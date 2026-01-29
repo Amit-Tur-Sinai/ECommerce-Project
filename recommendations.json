@@ -1,0 +1,86 @@
+{
+  "recommendations": [
+    {
+      "climate_event": "cold",
+      "store_type": "winery",
+      "risk_level": "high",
+      "recommendations": [
+        "Activate frost protection systems overnight",
+        "Delay pruning in vulnerable vineyard blocks",
+        "Inspect irrigation lines for freezing risk",
+        "Assign staff for early morning frost damage inspection"
+        ]
+    },
+    {
+      "climate_event": "cold",
+      "store_type": "butcher_shop",
+      "risk_level": "medium",
+      "recommendations": [
+        "Inspect refrigeration units to prevent overcooling",
+        "Check delivery vehicles for cold-start issues",
+        "Increase monitoring of frozen inventory temperatures"
+      ]
+    },
+    {
+      "climate_event": "heat",
+      "store_type": "winery",
+      "risk_level": "high",
+      "recommendations": [
+        "Increase irrigation frequency during early morning hours",
+        "Shade exposed grape clusters where possible",
+        "Monitor sugar accumulation to adjust harvest timing",
+        "Reduce worker exposure during peak heat hours"
+      ]
+    },
+    {
+      "climate_event": "heat",
+      "store_type": "butcher_shop",
+      "risk_level": "critical",
+      "recommendations": [
+        "Increase refrigeration system load tolerance",
+        "Inspect backup generators and fuel levels",
+        "Prioritize sale or relocation of temperature-sensitive inventory",
+        "Shorten staff shifts to reduce heat stress"
+      ]
+    },
+    {
+      "climate_event": "storm",
+      "store_type": "winery",
+      "risk_level": "medium",
+      "recommendations": [
+        "Secure trellising and loose equipment",
+        "Delay chemical spraying until after rainfall",
+        "Inspect drainage channels to prevent water pooling"
+      ]
+    },
+    {
+      "climate_event": "storm",
+      "store_type": "butcher_shop",
+      "risk_level": "high",
+      "recommendations": [
+        "Prepare for possible power outages",
+        "Test backup refrigeration systems",
+        "Adjust delivery schedules to avoid storm peak"
+      ]
+    },
+    {
+      "climate_event": "fog",
+      "store_type": "winery",
+      "risk_level": "medium",
+      "recommendations": [
+        "Monitor humidity levels closely",
+        "Increase airflow through canopy management",
+        "Inspect for early signs of mold or mildew"
+      ]
+    },
+    {
+      "climate_event": "fog",
+      "store_type": "butcher_shop",
+      "risk_level": "low",
+      "recommendations": [
+        "Advise drivers to reduce speed during early deliveries",
+        "Allow extra delivery time to account for reduced visibility"
+      ]
+    }
+  ]
+}

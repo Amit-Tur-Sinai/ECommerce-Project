@@ -1,26 +1,29 @@
 import json
-import os
 from openrouter import OpenRouter
 from typing import Dict, Tuple, List
 
-RECOMMENDATION_MAP = {
-    ("cold", "butcher_shop"): {
-        "risk_level": "medium",
-        "recommendations": [
-            "Inspect refrigeration units to prevent overcooling",
-            "Check delivery vehicles for cold-start issues",
-            "Increase monitoring of frozen inventory temperatures"
-        ]
-    },
-    ("heat", "butcher_shop"): {
-        "risk_level": "critical",
-        "recommendations": [
-            "Increase refrigeration system load tolerance",
-            "Inspect backup generators and fuel levels",
-            "Prioritize sale of temperature-sensitive inventory"
-        ]
-    }
-}
+
+def load_recommendation_map(path: str) -> Dict[Tuple[str, str], Dict]:
+    """
+    Loads recommendations from a JSON file and returns a map
+    keyed by (climate_event, store_type).
+    """
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    recommendation_map: Dict[Tuple[str, str], Dict] = {}
+
+    for entry in data["recommendations"]:
+        key = (entry["climate_event"], entry["store_type"])
+        recommendation_map[key] = {
+            "risk_level": entry["risk_level"],
+            "recommendations": entry["recommendations"]
+        }
+
+    return recommendation_map
+
+RECOMMENDATION_MAP = load_recommendation_map("../recommendations.json")
 
 def get_active_risk_payloads(binary_risk, probabilities, store_type):
     payloads = []
@@ -80,7 +83,7 @@ def generate_recommendations(probabilities: Dict[str, float], store_type: str = 
         })
     return results
 
-if __name__ == "__main__":
+if __name__ == "__main__": # test qwen api
     climate_probs = {"cold": 0.62, "heat": 0.81}
     results = generate_recommendations(climate_probs)
 
