@@ -8,7 +8,7 @@ export const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center gap-2 mb-4 md:mb-0">
             <Cloud className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            <span className="text-lg font-semibold text-gray-900 dark:text-white">WeatherRisk</span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-white">Canopy</span>
           </div>
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
             <Link
@@ -18,7 +18,7 @@ export const Footer = () => {
               About Us
             </Link>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
-              © {new Date().getFullYear()} WeatherRisk. All rights reserved.
+              © {new Date().getFullYear()} Canopy. All rights reserved.
             </p>
           </div>
         </div>

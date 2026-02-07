@@ -44,7 +44,7 @@ export const Header = () => {
           <div className="flex justify-start items-center gap-4">
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
               <Cloud className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-              <span className="text-xl font-bold text-gray-900 dark:text-white">WeatherRisk</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Canopy</span>
             </Link>
             {/* About Us - visible to everyone */}
             <Link
