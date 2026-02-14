@@ -6,7 +6,7 @@ A comprehensive weather risk assessment platform that connects businesses with i
 Demo videos showcasing the application’s functionality are available in the Demos folder.
 Please download the video files to view the demonstrations.
 
-## 🌟 Features
+## Features
 
 - **Weather Risk Assessment** - AI-powered predictions for cold, storm, and heat events
 - **Business-Specific Recommendations** - Tailored advice for different business types (butcher shops, wineries)
@@ -16,7 +16,7 @@ Please download the video files to view the demonstrations.
 - **Insurance Company Interface** - Business portfolio management, policies, and risk assessment
 - **Multi-role Support** - Business users, Insurance agents.
 
-## 🏗️ Architecture: Data Persistence
+## Architecture: Data Persistence
 
 | Data Type | Source | Update Frequency |
 |-----------|--------|-----------------|
@@ -139,7 +139,7 @@ A daily report will be sent to each user at 7-8 AM containing:
 
 For now, the dashboard itself serves as the daily view.
 
-## 🏗️ Architecture: Data Persistence
+## Architecture: Data Persistence
 
 **All data in Canopy is persistent and deterministic.** Nothing is randomly generated on page load or refresh. Every piece of data the user sees comes from the database:
 
@@ -216,7 +216,7 @@ A daily report will be sent to each user at 7-8 AM containing:
 
 For now, the dashboard itself serves as the daily view.
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 ECommerce-Project/
@@ -249,7 +249,7 @@ ECommerce-Project/
     └── SENSOR_DEVICE.md
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 **See [SETUP.md](./docs/SETUP.md) for complete setup instructions.**
 
@@ -310,14 +310,14 @@ To verify: `crontab -l`
 To remove all Canopy cron jobs: `./setup_cron.sh --remove`
 To view logs: `tail -f backend/logs/train.log`
 
-## 📖 Documentation
+## Documentation
 
 - **[SETUP.md](./docs/SETUP.md)** - Complete setup and installation guide
 - **[Backend README](./docs/backend-README.md)** - Backend API documentation
 - **[Frontend README](./docs/frontend-README.md)** - Frontend documentation
 - **[Sensor Device](./docs/SENSOR_DEVICE.md)** - Sensor device setup
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend
 - **FastAPI** - Modern Python web framework
@@ -333,7 +333,7 @@ To view logs: `tail -f backend/logs/train.log`
 - **Tailwind CSS** - Styling
 - **React Query** - Data fetching
 
-## 👥 Founders
+## Founders
 
 - Amit Tur Sinai
 - Neri Nigberg
