@@ -322,9 +322,27 @@ export const PortfolioPage = () => {
                 <div key={note.note_id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{note.created_by_email}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatDateTime(new Date(note.created_at))}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatDateTime(new Date(note.created_at))}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await insuranceService.deleteNote(note.note_id);
+                            const notesData = await insuranceService.getBusinessNotes(selectedBusiness!);
+                            setNotes(notesData.notes);
+                            await loadPortfolio();
+                          } catch (err) {
+                            console.error('Error deleting note:', err);
+                          }
+                        }}
+                        className="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 transition-colors"
+                        title="Delete note"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                   <p className="text-gray-700 dark:text-gray-300">{note.note_text}</p>
                 </div>

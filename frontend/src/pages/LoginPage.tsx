@@ -9,10 +9,10 @@ export const LoginPage = () => {
           <Cloud className="w-12 h-12 text-primary-600 dark:text-primary-400" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-          Sign in to your account
+          Sign in to Canopy
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          Access your weather risk recommendations
+          Access your weather risk dashboard
         </p>
       </div>
 

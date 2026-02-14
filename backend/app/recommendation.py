@@ -163,7 +163,7 @@ def generate_recommendations(
     
     Args:
         probabilities: Dictionary mapping climate events to their probability values (0.0-1.0)
-                      Expected keys: "cold", "fog", "storm", "heat"
+                      Expected keys: "cold", "storm", "heat"
         store_type: Type of store to generate recommendations for (default: "butcher_shop")
         risk_threshold: Probability threshold above which an event is considered an active risk
                        (default: 0.5)
@@ -176,7 +176,7 @@ def generate_recommendations(
         - explanation: AI-generated explanation of the risk
         
     Example:
-        >>> probs = {"cold": 0.62, "heat": 0.81, "fog": 0.15, "storm": 0.30}
+        >>> probs = {"cold": 0.62, "heat": 0.81, "storm": 0.30}
         >>> results = generate_recommendations(probs, store_type="butcher_shop")
         >>> len(results)  # Only cold and heat are above 0.5 threshold
         2
@@ -199,11 +199,26 @@ def generate_recommendations(
 
     results = []
     for payload in payloads:
-        explanation = request_qwen_explanation(payload)
+        risk_level = payload["action_plan"]["risk_level"]
+        all_recs = payload["action_plan"]["recommendations"]
+
+        # Limit recommendations: max 5 for high/critical risk, max 1 for low risk
+        if risk_level in ("high", "critical"):
+            limited_recs = all_recs[:5]
+        elif risk_level == "low":
+            limited_recs = all_recs[:1]
+        else:  # medium
+            limited_recs = all_recs[:3]
+
+        # Update payload with limited recommendations for AI explanation
+        limited_payload = {**payload}
+        limited_payload["action_plan"] = {**payload["action_plan"], "recommendations": limited_recs}
+
+        explanation = request_qwen_explanation(limited_payload)
         results.append({
             "climate_event": payload["climate_event"],
-            "risk_level": payload["action_plan"]["risk_level"],
-            "recommendations": payload["action_plan"]["recommendations"],
+            "risk_level": risk_level,
+            "recommendations": limited_recs,
             "explanation": explanation
         })
     return results

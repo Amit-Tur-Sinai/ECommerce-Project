@@ -4,12 +4,16 @@ from app.predict import get_event_probabilities
 from app.recommendation import generate_recommendations
 from app.routers import auth, users, sensors, insurance
 from app.database import engine, Base
+from app.init_db import seed_data
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Seed / update default data (insurance company name, etc.)
+seed_data()
+
 app = FastAPI(
-    title="Weather Recommendation API",
+    title="Canopy API",
     description="API for weather risk assessment and business recommendations",
     version="1.0.0"
 )

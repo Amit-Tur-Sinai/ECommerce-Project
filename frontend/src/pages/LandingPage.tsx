@@ -1,7 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Cloud, Shield, TrendingUp, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export const LandingPage = () => {
+  const { user } = useAuth();
+
+  const getDashboardLink = () => {
+    if (!user) return '/dashboard';
+    if (user.role === 'Insurance' || user.role === 'Admin') return '/admin';
+    return '/dashboard';
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Hero Section */}
@@ -17,18 +26,29 @@ export const LandingPage = () => {
               tailored to your business type and location.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/register"
-                className="bg-primary-600 dark:bg-primary-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
-              >
-                Get Started Free
-              </Link>
-              <Link
-                to="/login"
-                className="bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-primary-600 dark:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Sign In
-              </Link>
+              {user ? (
+                <Link
+                  to={getDashboardLink()}
+                  className="bg-primary-600 dark:bg-primary-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/register"
+                    className="bg-primary-600 dark:bg-primary-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+                  >
+                    Get Started Free
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-primary-600 dark:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -92,12 +112,21 @@ export const LandingPage = () => {
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
             Join businesses that trust Canopy for weather risk management.
           </p>
-          <Link
-            to="/register"
-            className="inline-block bg-primary-600 dark:bg-primary-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
-          >
-            Start Free Trial
-          </Link>
+          {user ? (
+            <Link
+              to={getDashboardLink()}
+              className="inline-block bg-primary-600 dark:bg-primary-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <Link
+              to="/register"
+              className="inline-block bg-primary-600 dark:bg-primary-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+            >
+              Start Free Trial
+            </Link>
+          )}
         </div>
       </section>
     </div>

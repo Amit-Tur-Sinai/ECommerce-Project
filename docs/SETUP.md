@@ -1,6 +1,6 @@
-# Setup Guide - Weather Risk Recommendations App
+# Setup Guide - Canopy
 
-Complete guide to set up and run the Weather Risk Recommendations application.
+Complete guide to set up and run the Canopy application.
 
 ## 📋 Prerequisites
 

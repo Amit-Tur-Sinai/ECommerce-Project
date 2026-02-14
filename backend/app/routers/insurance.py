@@ -57,8 +57,6 @@ class PolicyCreate(BaseModel):
     store_type: Optional[str] = None
     compliance_threshold: float = 75.0
     requirements: Optional[Dict[str, Any]] = None
-    alert_enabled: bool = True
-    alert_threshold: float = 60.0
 
 
 class PolicyResponse(BaseModel):
@@ -68,8 +66,6 @@ class PolicyResponse(BaseModel):
     store_type: Optional[str]
     compliance_threshold: float
     requirements: Optional[Dict[str, Any]]
-    alert_enabled: bool
-    alert_threshold: float
 
 
 class RiskAssessmentCreate(BaseModel):
@@ -187,9 +183,12 @@ async def get_business_portfolio(
     """Get portfolio of insured businesses with filtering options."""
     insurance_company_id = get_insurance_company_id(current_user, db)
     
-    # Get all businesses (for now, all businesses are available to insurance companies)
-    # In production, this would filter by insurance_company_id
+    # Filter businesses by insurance company (only show businesses linked to this insurer)
     query = db.query(Business)
+    
+    # If not admin, only show businesses linked to this insurance company
+    if current_user.role.value != "Admin":
+        query = query.filter(Business.insurance_company_id == insurance_company_id)
     
     if store_type:
         query = query.filter(Business.store_type == store_type)
@@ -354,6 +353,28 @@ async def get_business_notes(
     return {"notes": result}
 
 
+@router.delete("/notes/{note_id}")
+async def delete_business_note(
+    note_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a note."""
+    insurance_company_id = get_insurance_company_id(current_user, db)
+    
+    note = db.query(BusinessNote).filter(BusinessNote.note_id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    # Only allow deletion if the note belongs to the user's insurance company
+    if insurance_company_id > 0 and note.insurance_company_id != insurance_company_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this note")
+    
+    db.delete(note)
+    db.commit()
+    return {"message": "Note deleted successfully"}
+
+
 @router.get("/claims", response_model=List[ClaimResponse])
 async def get_claims(
     current_user: User = Depends(get_current_admin_user),
@@ -479,8 +500,6 @@ async def get_policies(
             store_type=policy.store_type,
             compliance_threshold=policy.compliance_threshold,
             requirements=policy.requirements,
-            alert_enabled=policy.alert_enabled == "true",
-            alert_threshold=policy.alert_threshold,
         ))
     
     return result
@@ -506,8 +525,6 @@ async def create_policy(
         store_type=policy_data.store_type,
         compliance_threshold=policy_data.compliance_threshold,
         requirements=policy_data.requirements,
-        alert_enabled="true" if policy_data.alert_enabled else "false",
-        alert_threshold=policy_data.alert_threshold,
     )
     db.add(policy)
     db.commit()
@@ -524,8 +541,6 @@ async def create_policy(
         store_type=policy.store_type,
         compliance_threshold=policy.compliance_threshold,
         requirements=policy.requirements,
-        alert_enabled=policy.alert_enabled == "true",
-        alert_threshold=policy.alert_threshold,
     )
 
 

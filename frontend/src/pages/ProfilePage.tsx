@@ -91,75 +91,101 @@ export const ProfilePage = () => {
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email cannot be changed</p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Business Name
-            </label>
-            {isEditing ? (
-              <>
-                <input
-                  {...register('business_name', { required: 'Business name is required' })}
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                {errors.business_name && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {errors.business_name.message as string}
+          {/* Show different fields based on role */}
+          {user?.role === 'Insurance' || user?.role === 'Admin' ? (
+            <>
+              {/* Insurance-specific fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Role
+                </label>
+                <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
+                  {user?.role}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Company Name
+                </label>
+                <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
+                  {user?.insurance_company_name || user?.business_name || 'Not set'}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Business-specific fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Business Name
+                </label>
+                {isEditing ? (
+                  <>
+                    <input
+                      {...register('business_name', { required: 'Business name is required' })}
+                      type="text"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                    {errors.business_name && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {errors.business_name.message as string}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
+                    {user?.business_name || 'Not set'}
                   </p>
                 )}
-              </>
-            ) : (
-              <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
-                {user?.business_name || 'Not set'}
-              </p>
-            )}
-          </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Store Type
-            </label>
-            {isEditing ? (
-              <select
-                {...register('store_type')}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                {Object.entries(STORE_TYPE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
-                {user?.store_type
-                  ? STORE_TYPE_LABELS[user.store_type as keyof typeof STORE_TYPE_LABELS]
-                  : 'Not set'}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              City Location
-            </label>
-            {isEditing ? (
-              <>
-                <input
-                  {...register('city', { required: 'City is required' })}
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                {errors.city && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.city.message as string}</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Store Type
+                </label>
+                {isEditing ? (
+                  <select
+                    {...register('store_type')}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    {Object.entries(STORE_TYPE_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
+                    {user?.store_type
+                      ? STORE_TYPE_LABELS[user.store_type as keyof typeof STORE_TYPE_LABELS]
+                      : 'Not set'}
+                  </p>
                 )}
-              </>
-            ) : (
-              <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
-                {user?.city || 'Not set'}
-              </p>
-            )}
-          </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  City Location
+                </label>
+                {isEditing ? (
+                  <>
+                    <input
+                      {...register('city', { required: 'City is required' })}
+                      type="text"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                    {errors.city && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.city.message as string}</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
+                    {user?.city || 'Not set'}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="flex gap-4 pt-4">
             {isEditing ? (

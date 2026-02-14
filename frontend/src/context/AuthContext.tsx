@@ -19,20 +19,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user data on mount
+    // Check for stored user data on mount and refresh from backend
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('auth_token');
 
     if (storedUser && token) {
       try {
+        // Set cached user immediately for fast render
         setUser(JSON.parse(storedUser));
+        // Then refresh from backend to get latest data
+        authService.getCurrentUser().then((freshUser) => {
+          setUser(freshUser);
+          localStorage.setItem('user', JSON.stringify(freshUser));
+        }).catch(() => {
+          // Token expired or invalid – clear session
+          localStorage.removeItem('user');
+          localStorage.removeItem('auth_token');
+          setUser(null);
+        }).finally(() => {
+          setLoading(false);
+        });
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('auth_token');
+        setLoading(false);
       }
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {

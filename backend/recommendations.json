@@ -153,54 +153,6 @@
         "Secure backup generator in elevated, protected location",
         "Have backup communication systems ready (battery-powered radios)"
       ]
-    },
-    {
-      "climate_event": "fog",
-      "store_type": "butcher_shop",
-      "risk_level": "low",
-      "recommendations": [
-        "Advise drivers to reduce speed during early morning deliveries",
-        "Allow extra delivery time to account for reduced visibility",
-        "Ensure delivery vehicles have working fog lights and are properly maintained",
-        "Communicate with suppliers about potential delivery delays",
-        "Monitor storefront visibility and ensure adequate lighting for customer safety",
-        "Check that security cameras are functioning properly in low-visibility conditions",
-        "Remind staff to be extra cautious when moving inventory in parking areas",
-        "Consider delaying early morning deliveries if fog is particularly dense",
-        "Promote warm, comforting foods that appeal during foggy weather",
-        "Create cozy atmosphere in store to encourage longer customer visits",
-        "Offer hot prepared meals and soups to increase sales",
-        "Market products for indoor cooking and comfort meals",
-        "Ensure backup generator is tested and ready for any power issues",
-        "Install backup lighting systems for storefront visibility",
-        "Protect outdoor equipment from moisture damage with covers"
-      ]
-    },
-    {
-      "climate_event": "fog",
-      "store_type": "winery",
-      "risk_level": "medium",
-      "recommendations": [
-        "Monitor humidity levels closely using hygrometers throughout the vineyard",
-        "Increase airflow through canopy management and strategic pruning",
-        "Inspect for early signs of mold or mildew on grape clusters and leaves",
-        "Delay morning vineyard operations until visibility improves",
-        "Apply preventive fungicides if humidity persists for multiple days",
-        "Use fans or wind machines to improve air circulation if available",
-        "Monitor for botrytis cinerea (noble rot) development in white wine grapes",
-        "Adjust harvest timing if fog persists and grapes are at risk of disease",
-        "Ensure proper drainage to prevent water accumulation from fog condensation",
-        "Document fog conditions and any resulting crop impacts for future planning",
-        "Promote indoor wine tastings and cozy atmosphere during foggy conditions",
-        "Create special fog-themed wine experiences and events",
-        "Market wines that pair well with comfort foods for indoor dining",
-        "Offer wine flights and tasting specials to attract visitors",
-        "Increase online sales and delivery options for customers avoiding travel",
-        "Test backup generators for critical systems if power issues occur",
-        "Protect electrical equipment from moisture with proper covers",
-        "Install backup ventilation systems for storage areas if needed",
-        "Have backup dehumidification systems ready for critical storage areas"
-      ]
     }
   ]
 }

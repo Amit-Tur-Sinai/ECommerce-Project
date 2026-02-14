@@ -1,24 +1,100 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useWeatherRecommendations } from '@/hooks/useWeather';
 import { WeatherRiskCard } from '@/components/weather/WeatherRiskCard';
-import { CitySelector } from '@/components/weather/CitySelector';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
-import { RefreshCw, AlertCircle, Shield, Activity, TrendingUp, CheckCircle2, AlertTriangle, Thermometer } from 'lucide-react';
-import { STORE_TYPES, STORE_TYPE_LABELS } from '@/utils/constants';
-import { useQueryClient } from '@tanstack/react-query';
+import { AlertCircle, Shield, Activity, CheckCircle2, AlertTriangle, ChevronRight, X, Info, TrendingUp } from 'lucide-react';
 import { sensorService, ComplianceScore, SensorReading } from '@/services/sensors';
+
+// Detailed info for each compliance category
+const CATEGORY_INFO: Record<string, { title: string; icon: string; description: string; howWeMeasure: string[]; howToImprove: string[] }> = {
+  temperature_control: {
+    title: 'Temperature Control',
+    icon: '🌡️',
+    description: 'Measures how well your business maintains safe temperature levels across refrigeration, storage, and display areas.',
+    howWeMeasure: [
+      'Temperature sensors monitor refrigeration units, freezers, and display counters in real time',
+      'Readings are classified as normal, warning, or critical based on safe thresholds for your business type',
+      'The score reflects the percentage of temperature sensors in the "normal" range over the last 24 hours',
+      'For butcher shops: refrigeration should be 0–5°C, freezers -20 to -15°C, display counters 2–6°C',
+      'For wineries: fermentation tanks 12–18°C, wine cellars 10–15°C',
+    ],
+    howToImprove: [
+      'Schedule regular maintenance for refrigeration and cooling units',
+      'Install backup thermometers to cross-verify sensor readings',
+      'Set up automated alerts for when temperatures leave the safe range',
+      'Ensure door seals on refrigerators and freezers are intact',
+      'Avoid frequent opening of cold storage during peak hours',
+    ],
+  },
+  equipment_maintenance: {
+    title: 'Equipment Maintenance',
+    icon: '⚙️',
+    description: 'Tracks the operational health of critical equipment like backup generators, cooling systems, and power supplies.',
+    howWeMeasure: [
+      'Only Power sensors are used (backup generators, cooling systems)',
+      'Readings below the normal threshold (e.g., generator below 80%) trigger warnings',
+      'The score is the percentage of power/equipment sensors reporting normal operation',
+      'Critical alerts are triggered when equipment drops below safety thresholds',
+    ],
+    howToImprove: [
+      'Establish a monthly preventive maintenance schedule for all critical equipment',
+      'Keep spare parts on hand for generators and cooling systems',
+      'Test backup generators weekly under load to ensure they start reliably',
+      'Log all maintenance activities to build a compliance history',
+      'Replace aging equipment before it becomes unreliable',
+    ],
+  },
+  safety_protocols: {
+    title: 'Safety Protocols',
+    icon: '🛡️',
+    description: 'Evaluates how well your business follows recommended safety procedures during weather events.',
+    howWeMeasure: [
+      'Based on the percentage of weather risk recommendations you have implemented',
+      'Each recommendation (e.g., "secure outdoor equipment during storms") is tracked as Implemented or Pending',
+      'Implementing more recommendations directly increases this score',
+      'Recommendations are tailored to your business type and local weather conditions',
+    ],
+    howToImprove: [
+      'Review and act on all pending recommendations in your dashboard',
+      'Create a written emergency plan covering cold, heat, and storm scenarios',
+      'Train staff regularly on weather-related safety procedures',
+      'Document every safety action taken — this builds your compliance record',
+      'Assign a team member to be responsible for weather-related protocols',
+    ],
+  },
+  inventory_management: {
+    title: 'Inventory Management',
+    icon: '📦',
+    description: 'Assesses how well your inventory is protected from weather-related damage through proper storage and monitoring.',
+    howWeMeasure: [
+      'Only Humidity sensors are used (storage areas, barrel rooms, vineyard stations)',
+      'Humidity levels outside the normal range (e.g., above 70–85% for storage) reduce the score',
+      'The score is the percentage of humidity sensors in the "normal" range',
+      'Evaluates if storage conditions meet weather-adjusted standards',
+    ],
+    howToImprove: [
+      'Install dehumidifiers in storage areas prone to moisture buildup',
+      'Rotate stock based on weather forecasts (e.g., increase cold-weather items before a cold snap)',
+      'Adjust delivery schedules to avoid extreme weather windows',
+      'Monitor humidity sensors and respond quickly to warnings',
+      'Keep inventory logs to document weather-related adjustments for insurance',
+    ],
+  },
+};
 
 export const DashboardPage = () => {
   const { user } = useAuth();
-  const [city, setCity] = useState(user?.city || 'Chesterfield');
-  const [storeType, setStoreType] = useState(user?.store_type || STORE_TYPES.BUTCHER_SHOP);
-  const [riskThreshold, setRiskThreshold] = useState(0.2); // 20% threshold for demo
+  const city = user?.city || '';
+  const storeType = user?.store_type || 'butcher_shop';
+  const riskThreshold = 0.2; // 20% threshold for demo
+
   const [compliance, setCompliance] = useState<ComplianceScore | null>(null);
   const [sensors, setSensors] = useState<SensorReading[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
-  const queryClient = useQueryClient();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const {
     data: recommendations,
@@ -33,7 +109,7 @@ export const DashboardPage = () => {
 
   const loadDashboardData = async () => {
     if (!user?.business_id) return;
-    
+
     setIsLoadingData(true);
     try {
       const [complianceData, sensorsData] = await Promise.all([
@@ -47,12 +123,6 @@ export const DashboardPage = () => {
     } finally {
       setIsLoadingData(false);
     }
-  };
-
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['weather-recommendations'] });
-    refetch();
-    loadDashboardData();
   };
 
   const getRankColor = (rank: string) => {
@@ -72,25 +142,29 @@ export const DashboardPage = () => {
     return counts;
   };
 
+  // Limit recommendations: max 5 for high/critical risk, max 1 for low risk
+  const limitedRecommendations = recommendations?.filter((rec) => {
+    return rec.risk_level !== 'low' || recommendations.filter(r => r.risk_level === 'low').indexOf(rec) === 0;
+  }).slice(0, 5) ?? [];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Welcome back, {user?.business_name || user?.email}! Here's your weather risk overview.
+          Welcome back, {user?.business_name || user?.email}! Here's your weather risk overview for <span className="font-semibold">{city}</span>.
         </p>
       </div>
 
-      {/* Summary Widgets */}
+      {/* Top: Summary Widgets */}
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Compliance Score Widget */}
         {compliance && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Compliance Score</h3>
-              </div>
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Compliance Score</h3>
             </div>
             <div className="flex items-baseline gap-2">
               <span className={`text-3xl font-bold ${getRankColor(compliance.rank)}`}>
@@ -108,31 +182,27 @@ export const DashboardPage = () => {
 
         {/* Active Risks Widget */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-500 dark:text-orange-400" />
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Active Risks</h3>
-            </div>
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Active Risks</h3>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-gray-900 dark:text-white">
-              {recommendations?.length || 0}
+              {limitedRecommendations.length}
             </span>
             <span className="text-sm text-gray-500 dark:text-gray-400">risks</span>
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Above {riskThreshold * 100}% threshold
+            Based on today's weather forecast
           </div>
         </div>
 
         {/* Sensor Status Widget */}
         {sensors.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Sensors</h3>
-              </div>
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Sensors</h3>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -158,11 +228,9 @@ export const DashboardPage = () => {
         {/* Recommendations Followed Widget */}
         {compliance && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400" />
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Recommendations</h3>
-              </div>
+            <div className="flex items-center gap-2 mb-4">
+              <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400" />
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Recommendations</h3>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -173,7 +241,7 @@ export const DashboardPage = () => {
               </span>
             </div>
             <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              {compliance.recommendations_total > 0 
+              {compliance.recommendations_total > 0
                 ? `${Math.round((compliance.recommendations_followed / compliance.recommendations_total) * 100)}% compliance`
                 : 'No recommendations'}
             </div>
@@ -181,15 +249,27 @@ export const DashboardPage = () => {
         )}
       </div>
 
-      {/* Category Breakdown Widget */}
+      {/* Middle: Compliance by Category -- clickable to sensors page */}
       {compliance && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Compliance by Category</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Compliance by Category</h3>
+            <Link
+              to="/sensors"
+              className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1"
+            >
+              View all sensors <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Object.entries(compliance.category_scores).map(([category, score]) => (
-              <div key={category} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className="text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400 capitalize group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {category.replace('_', ' ')}
                   </span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -206,65 +286,16 @@ export const DashboardPage = () => {
                     style={{ width: `${score}%` }}
                   />
                 </div>
-              </div>
+                <div className="mt-2 text-xs text-gray-400 dark:text-gray-500 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors flex items-center gap-1">
+                  View details <ChevronRight className="w-3 h-3" />
+                </div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Controls */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              City Location
-            </label>
-            <CitySelector value={city} onChange={setCity} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Store Type
-            </label>
-            <select
-              value={storeType}
-              onChange={(e) => setStoreType(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              {Object.entries(STORE_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="mt-4 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-700 dark:text-gray-300">Risk Threshold:</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={riskThreshold}
-              onChange={(e) => setRiskThreshold(parseFloat(e.target.value))}
-              className="w-32 accent-primary-600 dark:accent-primary-500"
-            />
-            <span className="text-sm font-medium text-gray-900 dark:text-white w-12">
-              {(riskThreshold * 100).toFixed(0)}%
-            </span>
-          </div>
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh Data
-          </button>
-        </div>
-      </div>
-
-      {/* Recommendations */}
+      {/* Bottom: Active Recommendations */}
       {isLoading && (
         <div className="flex justify-center py-12">
           <LoadingSpinner size="lg" />
@@ -283,7 +314,7 @@ export const DashboardPage = () => {
 
       {!isLoading && !error && recommendations && (
         <>
-          {recommendations.length === 0 ? (
+          {limitedRecommendations.length === 0 ? (
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
               <div>
@@ -297,15 +328,111 @@ export const DashboardPage = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  Active Weather Risks ({recommendations.length})
+                  Active Recommendations ({limitedRecommendations.length})
                 </h2>
               </div>
-              {recommendations.map((rec, index) => (
+              {limitedRecommendations.map((rec, index) => (
                 <WeatherRiskCard key={index} recommendation={rec} />
               ))}
             </div>
           )}
         </>
+      )}
+
+      {/* Category Detail Modal */}
+      {selectedCategory && CATEGORY_INFO[selectedCategory] && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedCategory(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const info = CATEGORY_INFO[selectedCategory];
+              const score = compliance?.category_scores[selectedCategory as keyof typeof compliance.category_scores] ?? 0;
+              return (
+                <>
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{info.icon}</span>
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{info.title}</h2>
+                        <span className={`text-sm font-semibold ${
+                          score >= 80 ? 'text-green-600 dark:text-green-400' :
+                          score >= 60 ? 'text-yellow-600 dark:text-yellow-400' :
+                          score >= 40 ? 'text-orange-600 dark:text-orange-400' :
+                          'text-red-600 dark:text-red-400'
+                        }`}>
+                          Current score: {score}%
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCategory(null)}
+                      className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Modal Body */}
+                  <div className="p-6 space-y-6">
+                    {/* Description */}
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {info.description}
+                    </p>
+
+                    {/* How We Measure */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Info className="w-4 h-4 text-blue-500" />
+                        <h3 className="font-semibold text-gray-900 dark:text-white">How We Measure It</h3>
+                      </div>
+                      <ul className="space-y-2">
+                        {info.howWeMeasure.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-blue-500 mt-1 flex-shrink-0">&#8226;</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* How to Improve */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <TrendingUp className="w-4 h-4 text-green-500" />
+                        <h3 className="font-semibold text-gray-900 dark:text-white">How to Improve</h3>
+                      </div>
+                      <ul className="space-y-2">
+                        {info.howToImprove.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-green-500 mt-1 flex-shrink-0">&#8226;</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                    <Link
+                      to="/sensors"
+                      className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium flex items-center gap-1"
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      View all sensors <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
       )}
     </div>
   );

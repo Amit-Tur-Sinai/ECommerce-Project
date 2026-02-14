@@ -1,6 +1,12 @@
 import { Users, Cloud, Crown } from 'lucide-react';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 
+import yaelImg from '@/assets/team/yael.png';
+import yovelImg from '@/assets/team/yovel.png';
+import neriImg from '@/assets/team/neri.png';
+import nitzanImg from '@/assets/team/nitzan.png';
+import amitImg from '@/assets/team/amit.png';
+
 interface ScrollSectionProps {
   children: React.ReactNode;
   delay?: number;
@@ -44,18 +50,23 @@ export const AboutUsPage = () => {
   const founders = [
     {
       name: 'Amit Tur Sinai',
+      image: amitImg,
     },
     {
       name: 'Neri Nigberg',
+      image: neriImg,
     },
     {
       name: 'Nitzan Melchior',
+      image: nitzanImg,
     },
     {
-      name: 'Yael Tokolovsky',
+      name: 'Yael Tolkowsky',
+      image: yaelImg,
     },
     {
       name: 'Yovel Hatan',
+      image: yovelImg,
     },
   ];
 
@@ -73,7 +84,7 @@ export const AboutUsPage = () => {
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
               We're a team of passionate developers building innovative solutions
-              to help businesses protect themselves from weather-related risks.
+              that connect businesses and insurance companies through weather risk intelligence.
             </p>
           </div>
         </div>
@@ -88,11 +99,12 @@ export const AboutUsPage = () => {
                 Our Mission
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
-                Canopy was born from the need to help businesses make
-                data-driven decisions about weather-related risks. We combine
-                advanced machine learning models with real-time weather data to
-                provide actionable insights that protect businesses and their
-                operations.
+                Canopy bridges the gap between businesses and insurance companies
+                by turning weather data into actionable risk management. Our platform
+                uses machine learning to predict weather-related risks, provides
+                tailored recommendations to businesses, and gives insurance companies
+                real-time visibility into compliance and risk levels -- creating a
+                smarter, data-driven partnership that protects everyone involved.
               </p>
             </div>
           </ScrollSection>
@@ -139,10 +151,12 @@ export const AboutUsPage = () => {
                 delay={index * 100}
               >
                 <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-shadow text-center">
-                  <div className="relative w-20 h-20 mx-auto mb-4">
-                    <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center">
-                      <Users className="w-10 h-10 text-primary-600 dark:text-primary-400" />
-                    </div>
+                  <div className="relative w-24 h-24 mx-auto mb-4">
+                    <img
+                      src={founder.image}
+                      alt={founder.name}
+                      className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                    />
                     <div className="absolute -top-1 -right-1 bg-yellow-400 dark:bg-yellow-500 rounded-full p-1.5 shadow-md">
                       <Crown className="w-4 h-4 text-yellow-900 dark:text-yellow-950" />
                     </div>

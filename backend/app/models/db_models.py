@@ -229,3 +229,10 @@ class RiskAssessment(Base):
     insurance_company = relationship("InsuranceCompany")
     created_by = relationship("User")
     claim = relationship("Claim", back_populates="risk_assessment", uselist=False)
+
+
+class City(Base):
+    __tablename__ = "cities"
+
+    city_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False, index=True)

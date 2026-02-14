@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
-import { Shield, Plus, Bell, Settings } from 'lucide-react';
+import { Shield, Plus } from 'lucide-react';
 import { insuranceService, Policy } from '@/services/insurance';
 
 export const PoliciesPage = () => {
@@ -15,8 +15,6 @@ export const PoliciesPage = () => {
     business_id: '',
     store_type: '',
     compliance_threshold: '75',
-    alert_enabled: true,
-    alert_threshold: '60',
   });
 
   useEffect(() => {
@@ -43,16 +41,12 @@ export const PoliciesPage = () => {
         business_id: newPolicy.business_id ? parseInt(newPolicy.business_id) : undefined,
         store_type: newPolicy.store_type || undefined,
         compliance_threshold: parseFloat(newPolicy.compliance_threshold),
-        alert_enabled: newPolicy.alert_enabled,
-        alert_threshold: parseFloat(newPolicy.alert_threshold),
       });
       setShowCreateModal(false);
       setNewPolicy({
         business_id: '',
         store_type: '',
         compliance_threshold: '75',
-        alert_enabled: true,
-        alert_threshold: '60',
       });
       await loadPolicies();
     } catch (err) {
@@ -94,7 +88,7 @@ export const PoliciesPage = () => {
           </button>
         </div>
         <p className="text-gray-600 dark:text-gray-400">
-          Set compliance thresholds, customize requirements per business type, and configure automated alerts.
+          Set compliance thresholds and customize requirements per business type.
         </p>
       </div>
 
@@ -129,25 +123,6 @@ export const PoliciesPage = () => {
                           <div className="text-sm text-gray-600 dark:text-gray-400">Compliance Threshold</div>
                           <div className="text-xl font-bold text-gray-900 dark:text-white">
                             {policy.compliance_threshold}%
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Alert Threshold</div>
-                          <div className="text-xl font-bold text-gray-900 dark:text-white">
-                            {policy.alert_threshold}%
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Alerts</div>
-                          <div className="flex items-center gap-2">
-                            {policy.alert_enabled ? (
-                              <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
-                                <Bell className="w-4 h-4" />
-                                Enabled
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 dark:text-gray-500">Disabled</span>
-                            )}
                           </div>
                         </div>
                         {policy.requirements && (
@@ -210,28 +185,6 @@ export const PoliciesPage = () => {
                   onChange={(e) => setNewPolicy({ ...newPolicy, compliance_threshold: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Alert Threshold (%)
-                </label>
-                <input
-                  type="number"
-                  value={newPolicy.alert_threshold}
-                  onChange={(e) => setNewPolicy({ ...newPolicy, alert_threshold: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={newPolicy.alert_enabled}
-                    onChange={(e) => setNewPolicy({ ...newPolicy, alert_enabled: e.target.checked })}
-                    className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Enable Automated Alerts</span>
-                </label>
               </div>
               <div className="flex gap-2">
                 <button

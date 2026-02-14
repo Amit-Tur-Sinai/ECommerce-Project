@@ -1,6 +1,6 @@
-# Weather Risk Recommendations Frontend
+# Canopy Frontend
 
-A modern React frontend for the Weather Risk Recommendations API, built with TypeScript, Vite, and Tailwind CSS.
+A modern React frontend for the Canopy API, built with TypeScript, Vite, and Tailwind CSS.
 
 ## Features
 

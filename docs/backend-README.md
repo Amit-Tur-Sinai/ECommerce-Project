@@ -1,6 +1,6 @@
-# Backend - Weather Risk Recommendation API
+# Backend - Canopy API
 
-This is the backend service for the Weather Risk Recommendation application. It provides a FastAPI-based REST API for weather risk assessment, business recommendations, user management, and sensor monitoring.
+This is the backend service for the Canopy application. It provides a FastAPI-based REST API for weather risk assessment, business recommendations, user management, and sensor monitoring.
 
 ## 📂 Project Structure
 
