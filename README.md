@@ -2,6 +2,10 @@
 
 A comprehensive weather risk assessment platform that connects businesses with insurance companies through AI-powered weather risk intelligence. Canopy uses machine learning to predict weather-related risks, provides tailored recommendations to businesses, and gives insurance companies real-time visibility into compliance and risk levels.
 
+## Demos
+Demo videos showcasing the application’s functionality are available in the Demos folder.
+Please download the video files to view the demonstrations.
+
 ## 🌟 Features
 
 - **Weather Risk Assessment** - AI-powered predictions for cold, storm, and heat events
