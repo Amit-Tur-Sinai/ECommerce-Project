@@ -151,6 +151,10 @@ For now, the dashboard itself serves as the daily view.
 | **Compliance scores** | Calculated from stored sensors + recommendations | On read (deterministic) |
 | **Business rankings** | Derived from compliance data | Updated with sensor generation |
 
+### Model Selection
+
+The model selection process for weather prediction, including the evaluation and comparison of different machine learning algorithms, can be found in the `notebooks/Model_Selection_Notebook.ipynb` file. This notebook contains the detailed analysis, hyperparameter tuning, and performance metrics that led to the selection of **XGBoost** as the final model for predicting cold, storm, and heat events.
+
 ### Daily Data Pipeline
 
 The following scheduled jobs run daily to keep data fresh:
