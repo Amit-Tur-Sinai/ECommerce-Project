@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
-import { Building2, Filter, Plus, FileText, AlertTriangle, Search } from 'lucide-react';
+import { Building2, Filter, FileText, AlertTriangle, Search, ShieldAlert, Mail } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { insuranceService, BusinessPortfolioItem, BusinessNote } from '@/services/insurance';
 import { formatDateTime } from '@/utils/formatters';
 
@@ -21,6 +22,7 @@ export const PortfolioPage = () => {
   const [notes, setNotes] = useState<BusinessNote[]>([]);
   const [newNote, setNewNote] = useState('');
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [sendingWarningId, setSendingWarningId] = useState<number | null>(null);
 
   useEffect(() => {
     loadPortfolio();
@@ -42,6 +44,24 @@ export const PortfolioPage = () => {
       console.error('Error loading portfolio:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSendWarning = async (businessId: number, businessName: string) => {
+    if (!confirm(`Send a policy violation warning email to ${businessName}?`)) return;
+    setSendingWarningId(businessId);
+    try {
+      const result = await insuranceService.sendViolationNotification(businessId);
+      toast.success(
+        result.simulated
+          ? `Warning sent to ${businessName}`
+          : `Warning email sent to ${result.recipient}`
+      );
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || 'Failed to send warning email';
+      toast.error(msg);
+    } finally {
+      setSendingWarningId(null);
     }
   };
 
@@ -198,7 +218,7 @@ export const PortfolioPage = () => {
       </div>
 
       {/* Portfolio Stats */}
-      <div className="grid md:grid-cols-4 gap-4 mb-6">
+      <div className="grid md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Businesses</div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">{filteredBusinesses.length}</div>
@@ -227,6 +247,22 @@ export const PortfolioPage = () => {
             %
           </div>
         </div>
+        <div className={`rounded-lg border p-4 ${
+          filteredBusinesses.filter(b => b.policy_violated).length > 0
+            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+        }`}>
+          <div className="text-sm text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-1">
+            <ShieldAlert className="w-4 h-4" /> Policy Violations
+          </div>
+          <div className={`text-2xl font-bold ${
+            filteredBusinesses.filter(b => b.policy_violated).length > 0
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-green-600 dark:text-green-400'
+          }`}>
+            {filteredBusinesses.filter(b => b.policy_violated).length}
+          </div>
+        </div>
       </div>
 
       {/* Business List */}
@@ -244,7 +280,11 @@ export const PortfolioPage = () => {
               {filteredBusinesses.map((business) => (
                 <div
                   key={business.business_id}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white dark:bg-gray-700/50"
+                  className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
+                    business.policy_violated
+                      ? 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-900/10'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700/50'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -258,6 +298,12 @@ export const PortfolioPage = () => {
                         <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs">
                           {business.store_type.replace('_', ' ')}
                         </span>
+                        {business.policy_violated && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Below Policy ({business.policy_threshold}%)
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                         <span>📍 {business.city}</span>
@@ -267,6 +313,16 @@ export const PortfolioPage = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {business.policy_violated && (
+                        <button
+                          onClick={() => handleSendWarning(business.business_id, business.business_name)}
+                          disabled={sendingWarningId === business.business_id}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Mail className="w-4 h-4" />
+                          {sendingWarningId === business.business_id ? 'Sending...' : 'Send Warning'}
+                        </button>
+                      )}
                       <button
                         onClick={() => loadBusinessNotes(business.business_id)}
                         className="px-4 py-2 bg-primary-600 dark:bg-primary-500 text-white rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors flex items-center gap-2"
@@ -322,9 +378,27 @@ export const PortfolioPage = () => {
                 <div key={note.note_id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{note.created_by_email}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatDateTime(new Date(note.created_at))}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatDateTime(new Date(note.created_at))}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await insuranceService.deleteNote(note.note_id);
+                            const notesData = await insuranceService.getBusinessNotes(selectedBusiness!);
+                            setNotes(notesData.notes);
+                            await loadPortfolio();
+                          } catch (err) {
+                            console.error('Error deleting note:', err);
+                          }
+                        }}
+                        className="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 transition-colors"
+                        title="Delete note"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                   <p className="text-gray-700 dark:text-gray-300">{note.note_text}</p>
                 </div>

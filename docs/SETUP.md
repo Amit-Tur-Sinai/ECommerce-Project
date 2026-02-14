@@ -1,6 +1,6 @@
-# Setup Guide - Weather Risk Recommendations App
+# Setup Guide - Canopy
 
-Complete guide to set up and run the Weather Risk Recommendations application.
+Complete guide to set up and run the Canopy application.
 
 ## 📋 Prerequisites
 
@@ -145,40 +145,57 @@ Open your browser and navigate to: **http://localhost:3000**
    - City: `Chesterfield`
 3. Click "Create Account"
 
-### 2. Explore Features
+### 2. Explore Features (Business User)
 
 After registration, you'll be automatically logged in and can:
-- View Dashboard with weather risks
-- Check Recommendations for your city
-- View Analytics and trends
-- Monitor Sensors (if configured)
-- Access Map, Forecast, Reports, Savings, and Impact pages
+- View your **Dashboard** with compliance score, weather risks, and sensor status
+- Click the **Recommendations** widget to see all implemented/pending items
+- View **Analytics** with historical weather trends and export to CSV/PDF
+- Monitor **Sensors** in real time
+- Check your **Inbox** for notifications from your insurance provider
+
+### 3. Try the Insurance View
+
+Register a second user with the "Insurance" role to access:
+- **Admin Dashboard** with business rankings overview
+- **Portfolio** page with all insured businesses and violation flags
+- **Policies** page to create/edit compliance thresholds and send warning notifications
 
 ## 📁 Project Structure
 
 ```
 ECommerce-Project/
 ├── backend/                    # Python FastAPI backend
-│   ├── app/                   # Application code
-│   │   ├── routers/          # API endpoints
-│   │   ├── models/          # Database & ML models
-│   │   ├── schemas/         # Pydantic schemas
-│   │   └── utils/           # Utilities
-│   ├── main.py              # FastAPI entry point
-│   ├── requirements.txt     # Python dependencies
-│   └── .env                 # Environment variables (create this)
+│   ├── app/
+│   │   ├── routers/           # API endpoints (auth, users, sensors, insurance)
+│   │   ├── models/            # Database ORM & ML models (.joblib)
+│   │   ├── schemas/           # Pydantic request/response schemas
+│   │   ├── utils/             # Auth utilities
+│   │   ├── config.py          # Feature flags
+│   │   ├── schedule_tasks.py  # Scheduled job runner
+│   │   └── ...                # Ingestion, training, sensor generation scripts
+│   ├── main.py                # FastAPI entry point
+│   ├── setup_cron.sh          # Cron job installer
+│   ├── requirements.txt       # Python dependencies
+│   └── .env                   # Environment variables (create this)
 │
-├── frontend/                  # React TypeScript frontend
+├── frontend/                   # React TypeScript frontend
 │   ├── src/
-│   │   ├── pages/           # Page components
-│   │   ├── components/      # Reusable components
-│   │   ├── services/       # API services
-│   │   └── ...
-│   ├── package.json         # Node dependencies
-│   └── vite.config.ts       # Vite configuration
+│   │   ├── pages/             # Dashboard, Analytics, Sensors, Portfolio, Policies, Inbox, etc.
+│   │   ├── components/        # Header, Footer, forms, weather cards, route guards
+│   │   ├── services/          # API clients (auth, sensors, insurance, notifications)
+│   │   ├── context/           # AuthContext, ThemeContext
+│   │   └── utils/             # Constants, formatters, export helpers
+│   ├── package.json           # Node dependencies
+│   └── vite.config.ts         # Vite configuration
 │
-└── docs/                     # Documentation
-    └── SETUP.md              # This file
+├── docs/                       # Documentation
+│   ├── SETUP.md                # This file
+│   ├── backend-README.md
+│   ├── frontend-README.md
+│   └── SENSOR_DEVICE.md
+│
+└── notebooks/                  # Jupyter notebooks
 ```
 
 ## 🔧 Troubleshooting
@@ -263,10 +280,10 @@ python app/db_setup.py
 ## 🎯 Next Steps
 
 1. ✅ Complete setup (you're here!)
-2. ✅ Register your first user
-3. ✅ Explore all features
-4. ⏭️ Configure sensors (optional)
-5. ⏭️ Set up scheduled tasks (optional)
+2. ✅ Register a business user and explore the dashboard
+3. ✅ Register an insurance user and explore the portfolio/policies
+4. ⏭️ Configure sensors (see [SENSOR_DEVICE.md](./SENSOR_DEVICE.md))
+5. ⏭️ Set up daily cron jobs (`cd backend && ./setup_cron.sh`)
 6. ⏭️ Deploy to production
 
 ## 🛠️ Development Commands
@@ -274,11 +291,14 @@ python app/db_setup.py
 ### Backend
 ```bash
 cd backend
-python3 -m uvicorn main:app --reload --port 8000  # Start server
-python app/init_db.py                              # Initialize DB
-python app/db_setup.py                             # Load weather data
-python app/train_model.py                          # Train models
-python app/create_admin_user.py                    # Create admin user
+python3 -m uvicorn main:app --reload --port 8000   # Start server
+python app/init_db.py                               # Initialize DB
+python app/db_setup.py                              # Load weather data
+python app/train_model.py                           # Train models
+python app/create_admin_user.py                     # Create admin user
+python app/schedule_tasks.py train                  # Re-train models
+python app/schedule_tasks.py ingest                 # Ingest weather data
+python app/schedule_tasks.py generate_sensors       # Generate sensor data
 ```
 
 ### Frontend

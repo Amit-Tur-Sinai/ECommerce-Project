@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { Cloud, Menu, X, User, LogOut, Settings, Moon, Sun, ChevronDown, BarChart3, Map, Calendar, FileText, DollarSign, AlertTriangle } from 'lucide-react';
-import { cn } from '@/utils/clsx';
+import { Cloud, Menu, X, User, LogOut, Moon, Sun, Bell } from 'lucide-react';
+import { notificationService } from '@/services/notifications';
 
 export const Header = () => {
   const { user, logout } = useAuth();
@@ -11,8 +11,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
@@ -20,15 +19,29 @@ export const Header = () => {
     navigate('/login');
   };
 
+  // Poll for unread notification count
+  useEffect(() => {
+    if (!user || user.role !== 'Business') return;
+
+    const fetchCount = async () => {
+      try {
+        const data = await notificationService.getUnreadCount();
+        setUnreadCount(data.unread_count);
+      } catch {
+        // silently ignore
+      }
+    };
+
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000); // poll every 30s
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (
-        moreMenuRef.current && !moreMenuRef.current.contains(target) &&
-        userMenuRef.current && !userMenuRef.current.contains(target)
-      ) {
-        setMoreMenuOpen(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setUserMenuOpen(false);
       }
     };
@@ -44,7 +57,7 @@ export const Header = () => {
           <div className="flex justify-start items-center gap-4">
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
               <Cloud className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-              <span className="text-xl font-bold text-gray-900 dark:text-white">WeatherRisk</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Canopy</span>
             </Link>
             {/* About Us - visible to everyone */}
             <Link
@@ -62,18 +75,11 @@ export const Header = () => {
                 {/* Business users ONLY see Business pages */}
                 {user.role === 'Business' && (
                   <>
-                    {/* Primary Navigation - Always Visible */}
                     <Link
                       to="/dashboard"
                       className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
                     >
                       Dashboard
-                    </Link>
-                    <Link
-                      to="/recommendations"
-                      className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                    >
-                      Recommendations
                     </Link>
                     <Link
                       to="/analytics"
@@ -87,69 +93,11 @@ export const Header = () => {
                     >
                       Sensors
                     </Link>
-                    
-                    {/* More Menu - Dropdown for additional pages */}
-                    <div className="relative" ref={moreMenuRef}>
-                      <button
-                        onClick={() => {
-                          setMoreMenuOpen(!moreMenuOpen);
-                          setUserMenuOpen(false);
-                        }}
-                        className="flex items-center gap-1 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                      >
-                        More
-                        <ChevronDown className={`w-3 h-3 transition-transform ${moreMenuOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                      {moreMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
-                          <Link
-                            to="/map"
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => setMoreMenuOpen(false)}
-                          >
-                            <Map className="w-4 h-4" />
-                            Map
-                          </Link>
-                          <Link
-                            to="/forecast"
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => setMoreMenuOpen(false)}
-                          >
-                            <Calendar className="w-4 h-4" />
-                            Forecast
-                          </Link>
-                          <Link
-                            to="/reports"
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => setMoreMenuOpen(false)}
-                          >
-                            <FileText className="w-4 h-4" />
-                            Reports
-                          </Link>
-                          <Link
-                            to="/savings"
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => setMoreMenuOpen(false)}
-                          >
-                            <DollarSign className="w-4 h-4" />
-                            Savings
-                          </Link>
-                          <Link
-                            to="/impact"
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => setMoreMenuOpen(false)}
-                          >
-                            <AlertTriangle className="w-4 h-4" />
-                            Impact
-                          </Link>
-                        </div>
-                      )}
-                    </div>
                   </>
                 )}
                 
                 {/* Insurance users ONLY see Insurance pages */}
-                {user.role === 'Insurance' && (
+                {(user.role === 'Insurance' || user.role === 'Admin') && (
                   <>
                     <Link
                       to="/admin"
@@ -164,58 +112,10 @@ export const Header = () => {
                       Portfolio
                     </Link>
                     <Link
-                      to="/insurance/claims"
-                      className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                    >
-                      Claims
-                    </Link>
-                    <Link
                       to="/insurance/policies"
                       className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
                     >
                       Policies
-                    </Link>
-                    <Link
-                      to="/insurance/compare"
-                      className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                    >
-                      Compare
-                    </Link>
-                  </>
-                )}
-                
-                {/* Admin users see Insurance pages */}
-                {user.role === 'Admin' && (
-                  <>
-                    <Link
-                      to="/admin"
-                      className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      to="/insurance/portfolio"
-                      className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                    >
-                      Portfolio
-                    </Link>
-                    <Link
-                      to="/insurance/claims"
-                      className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                    >
-                      Claims
-                    </Link>
-                    <Link
-                      to="/insurance/policies"
-                      className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                    >
-                      Policies
-                    </Link>
-                    <Link
-                      to="/insurance/compare"
-                      className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap text-lg"
-                    >
-                      Compare
                     </Link>
                   </>
                 )}
@@ -223,8 +123,25 @@ export const Header = () => {
             )}
           </div>
 
-          {/* Theme Toggle & User Menu - Right */}
+          {/* Notifications, Theme Toggle & User Menu - Right */}
           <div className="flex items-center justify-end gap-2 flex-shrink-0">
+            {/* Notification Bell - Business users only */}
+            {user && user.role === 'Business' && (
+              <button
+                onClick={() => navigate('/inbox')}
+                className="relative p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Notifications"
+                type="button"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Dark Mode Toggle */}
             <button
               onClick={(e) => {
@@ -247,7 +164,6 @@ export const Header = () => {
                 <button
                   onClick={() => {
                     setUserMenuOpen(!userMenuOpen);
-                    setMoreMenuOpen(false);
                   }}
                   className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                 >
@@ -344,13 +260,6 @@ export const Header = () => {
                       Dashboard
                     </Link>
                     <Link
-                      to="/recommendations"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Recommendations
-                    </Link>
-                    <Link
                       to="/analytics"
                       className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
                       onClick={() => setMobileMenuOpen(false)}
@@ -365,45 +274,17 @@ export const Header = () => {
                       Sensors
                     </Link>
                     <Link
-                      to="/map"
+                      to="/inbox"
                       className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Map
-                    </Link>
-                    <Link
-                      to="/forecast"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Forecast
-                    </Link>
-                    <Link
-                      to="/reports"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Reports
-                    </Link>
-                    <Link
-                      to="/savings"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Savings
-                    </Link>
-                    <Link
-                      to="/impact"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Impact
+                      Inbox {unreadCount > 0 && `(${unreadCount})`}
                     </Link>
                   </>
                 )}
                 
-                {/* Insurance users ONLY see Insurance pages */}
-                {user.role === 'Insurance' && (
+                {/* Insurance/Admin users see Insurance pages */}
+                {(user.role === 'Insurance' || user.role === 'Admin') && (
                   <>
                     <Link
                       to="/admin"
@@ -420,66 +301,11 @@ export const Header = () => {
                       Portfolio
                     </Link>
                     <Link
-                      to="/insurance/claims"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Claims
-                    </Link>
-                    <Link
                       to="/insurance/policies"
                       className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Policies
-                    </Link>
-                    <Link
-                      to="/insurance/compare"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Compare
-                    </Link>
-                  </>
-                )}
-                
-                {/* Admin users see Insurance pages */}
-                {user.role === 'Admin' && (
-                  <>
-                    <Link
-                      to="/admin"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      to="/insurance/portfolio"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Portfolio
-                    </Link>
-                    <Link
-                      to="/insurance/claims"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Claims
-                    </Link>
-                    <Link
-                      to="/insurance/policies"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Policies
-                    </Link>
-                    <Link
-                      to="/insurance/compare"
-                      className="block py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Compare
                     </Link>
                   </>
                 )}

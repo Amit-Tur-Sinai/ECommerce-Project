@@ -1,6 +1,6 @@
-# Backend - Weather Risk Recommendation API
+# Backend - Canopy API
 
-This is the backend service for the Weather Risk Recommendation application. It provides a FastAPI-based REST API for weather risk assessment, business recommendations, user management, and sensor monitoring.
+This is the backend service for the Canopy application. It provides a FastAPI-based REST API for weather risk assessment, business recommendations, user management, and sensor monitoring.
 
 ## 📂 Project Structure
 
@@ -29,16 +29,13 @@ backend/
 │   │   ├── db_models.py          # SQLAlchemy models
 │   │   └── weather_models/       # Trained ML models (.joblib files)
 │   ├── schemas/                  # Pydantic schemas
-│   │   ├── auth_schemas.py       # Authentication schemas
-│   │   └── db_schemas.py         # Database schemas
+│   │   └── auth_schemas.py       # Authentication schemas
 │   └── utils/                    # Utility modules
 │       └── auth.py               # Authentication utilities
 ├── main.py                       # FastAPI application entry point
 ├── requirements.txt              # Python dependencies
-├── tests/                        # Test files
-│   └── test_db.py
+├── setup_cron.sh                 # Cron job installer for daily tasks
 ├── run_sensor_device.py          # Sensor device runner script
-├── show_sensor_row.py            # Utility to view sensor readings
 └── *.md                          # Backend documentation files
 ```
 
@@ -119,12 +116,6 @@ The API will be available at:
 
 ## 🔧 Development
 
-### Running Tests
-```bash
-cd backend
-python -m pytest tests/
-```
-
 ### Database Migrations
 The application uses SQLAlchemy with automatic table creation. To recreate tables:
 ```bash
@@ -136,8 +127,16 @@ python -c "from app.database import engine, Base; from app.models import db_mode
 To run scheduled tasks manually:
 ```bash
 cd backend
-python app/schedule_tasks.py train    # Train models
-python app/schedule_tasks.py ingest   # Ingest daily data
+python app/schedule_tasks.py train            # Train models
+python app/schedule_tasks.py ingest           # Ingest daily data
+python app/schedule_tasks.py generate_sensors # Generate sensor data
+```
+
+To automate with cron (runs daily at 2/3/4 AM):
+```bash
+cd backend
+chmod +x setup_cron.sh
+./setup_cron.sh
 ```
 
 ## 📖 Documentation
@@ -151,14 +150,6 @@ python app/schedule_tasks.py ingest   # Ingest daily data
 - Password hashing with bcrypt
 - Role-based access control (Business, Insurance, Admin)
 - CORS middleware configured for frontend
-
-## 🧪 Testing
-
-Run the test suite:
-```bash
-cd backend
-python -m pytest tests/
-```
 
 ## 📝 Notes
 

@@ -12,21 +12,14 @@ import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
-import { RecommendationsPage } from '@/pages/RecommendationsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { SensorMonitoringPage } from '@/pages/SensorMonitoringPage';
 import { AdminPage } from '@/pages/AdminPage';
 import { PortfolioPage } from '@/pages/PortfolioPage';
-import { ClaimsPage } from '@/pages/ClaimsPage';
 import { PoliciesPage } from '@/pages/PoliciesPage';
-import { ComparisonPage } from '@/pages/ComparisonPage';
 import { AboutUsPage } from '@/pages/AboutUsPage';
-import { WeatherMapPage } from '@/pages/WeatherMapPage';
-import { ForecastTimelinePage } from '@/pages/ForecastTimelinePage';
-import { ReportsPage } from '@/pages/ReportsPage';
-import { CostSavingsPage } from '@/pages/CostSavingsPage';
-import { ImpactPredictionsPage } from '@/pages/ImpactPredictionsPage';
+import { InboxPage } from '@/pages/InboxPage';
 import { AdminRoute } from '@/components/common/AdminRoute';
 import { BusinessRoute } from '@/components/common/BusinessRoute';
 
@@ -69,14 +62,6 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/recommendations"
-        element={
-          <BusinessRoute>
-            <RecommendationsPage />
-          </BusinessRoute>
-        }
-      />
-      <Route
         path="/profile"
         element={
           <ProtectedRoute>
@@ -101,46 +86,6 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/map"
-        element={
-          <BusinessRoute>
-            <WeatherMapPage />
-          </BusinessRoute>
-        }
-      />
-      <Route
-        path="/forecast"
-        element={
-          <BusinessRoute>
-            <ForecastTimelinePage />
-          </BusinessRoute>
-        }
-      />
-      <Route
-        path="/reports"
-        element={
-          <BusinessRoute>
-            <ReportsPage />
-          </BusinessRoute>
-        }
-      />
-      <Route
-        path="/savings"
-        element={
-          <BusinessRoute>
-            <CostSavingsPage />
-          </BusinessRoute>
-        }
-      />
-      <Route
-        path="/impact"
-        element={
-          <BusinessRoute>
-            <ImpactPredictionsPage />
-          </BusinessRoute>
-        }
-      />
-      <Route
         path="/admin"
         element={
           <AdminRoute>
@@ -157,14 +102,6 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/insurance/claims"
-        element={
-          <AdminRoute>
-            <ClaimsPage />
-          </AdminRoute>
-        }
-      />
-      <Route
         path="/insurance/policies"
         element={
           <AdminRoute>
@@ -173,11 +110,11 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/insurance/compare"
+        path="/inbox"
         element={
-          <AdminRoute>
-            <ComparisonPage />
-          </AdminRoute>
+          <BusinessRoute>
+            <InboxPage />
+          </BusinessRoute>
         }
       />
       <Route path="/about" element={<AboutUsPage />} />

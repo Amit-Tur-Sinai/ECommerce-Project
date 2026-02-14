@@ -4,7 +4,7 @@ from xgboost import XGBClassifier
 from app.daily_ingest import get_features_for_city
 
 MODEL_PATH = "app/models/weather_models"
-TARGETS = ["has_cold", "has_fog", "has_storm", "has_heat"]
+TARGETS = ["has_cold", "has_storm", "has_heat"]
 IGNORE_COLS = [
     'Date', 'City', 'State',
     'HasExtremeEvent', 'EventCount', 'Events', 'Event_Types',
@@ -17,7 +17,6 @@ def get_event_probabilities(city_name: str) -> dict:
     
     Uses ML models trained on historical data to predict the probability of:
     - Cold events (min temp < 5°C)
-    - Fog events (humidity > 90%)
     - Storm events (wind > 50 km/h OR precipitation > 20mm)
     - Heat events (max temp >= 35°C OR above city-specific threshold)
     
@@ -26,7 +25,7 @@ def get_event_probabilities(city_name: str) -> dict:
     - Historical weather patterns (last 14 days from database)
     - Calculated features (lags, rolling means, seasonal patterns)
     
-    Returns a dictionary with keys: "cold", "fog", "storm", "heat"
+    Returns a dictionary with keys: "cold", "storm", "heat"
     Each value is a probability between 0.0 and 1.0
     """
     # 1. Get features for the city (uses yesterday's weather + historical patterns)

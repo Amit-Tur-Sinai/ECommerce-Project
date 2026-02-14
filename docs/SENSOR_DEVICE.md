@@ -1,157 +1,128 @@
-# Demo Sensor Device Documentation
+# Sensor Device Documentation
 
 ## Overview
 
-The demo sensor device simulates IoT sensor devices that monitor business operations and track compliance with weather risk recommendations. It generates realistic sensor readings and automatically updates compliance scores and business rankings.
+The sensor device simulator generates realistic IoT sensor readings for demo and development purposes. It monitors business operations, tracks compliance with weather risk recommendations, and updates compliance scores and rankings automatically.
 
-> **📋 Setup Required:** Before using the sensor device, make sure you've completed the main setup steps outlined in [SETUP.md](./SETUP.md). This includes database configuration, table creation, and initial data setup.
+> **Prerequisites:** Complete the main setup steps in [SETUP.md](./SETUP.md) (database configuration, table creation, initial data) before using the sensor device.
 
 ## Features
 
-- **Realistic Sensor Data Generation**: Generates sensor readings based on business type (butcher shop, winery)
-- **Compliance Tracking**: Tracks which recommendations are being followed
-- **Automatic Ranking**: Calculates and updates business rankings based on compliance scores
-- **Configurable Compliance Rate**: Adjustable compliance rate for realistic data generation
+- Generates realistic sensor readings based on business type (butcher shop or winery)
+- Tracks recommendation implementation status
+- Calculates and updates business compliance scores and rankings
+- Configurable compliance rate and reading interval
 
 ## Database Models
 
-The system uses three new database models:
+The sensor system uses three models:
 
-1. **SensorReading**: Stores sensor readings with status and compliance information
-2. **RecommendationTracking**: Tracks which recommendations are given and their implementation status
-3. **BusinessRanking**: Stores calculated compliance scores and rankings for each business
+| Model | Purpose |
+|-------|---------|
+| **SensorReading** | Stores sensor readings with value, status, and compliance info |
+| **RecommendationTracking** | Tracks recommendations and their implementation status |
+| **BusinessRanking** | Stores calculated compliance scores and rank levels |
 
 ## Usage
 
-### Initialize Demo Data Only
+All commands should be run from the `backend/` directory.
 
-To initialize demo businesses and generate initial sensor readings without running continuously:
+### Initialize Demo Data
 
-**Option 1: Using the wrapper script (recommended)**
+Generate initial sensor readings without running continuously:
+
 ```bash
 python3 run_sensor_device.py --init-only
-```
-
-**Option 2: Using PYTHONPATH**
-```bash
-PYTHONPATH=. python3 -m app.demo_sensor_device --init-only
-```
-
-**Option 3: Running directly**
-```bash
-cd /Users/yovel.hatan/Desktop/ECommerce-Project
-PYTHONPATH=. python3 app/demo_sensor_device.py --init-only
 ```
 
 ### Run Continuous Simulation
 
-To run the sensor device continuously (generates readings every 5 minutes by default):
+Generate sensor readings on an interval (default: every 5 minutes):
 
-**Option 1: Using the wrapper script (recommended)**
 ```bash
 python3 run_sensor_device.py
 ```
 
-**Option 2: Using PYTHONPATH**
-```bash
-PYTHONPATH=. python3 -m app.demo_sensor_device
-```
+### Command-Line Options
 
-### Options
-
-- `--business-id BUSINESS_ID`: Monitor a specific business ID (default: all businesses)
-- `--interval SECONDS`: Interval between sensor readings in seconds (default: 300 = 5 minutes)
-- `--compliance-rate RATE`: Compliance rate (0.0-1.0) for generating realistic data (default: 0.85 = 85%)
-- `--init-only`: Only initialize demo data, don't run continuous simulation
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--business-id ID` | Monitor a specific business | All businesses |
+| `--interval SECONDS` | Time between readings | 300 (5 min) |
+| `--compliance-rate RATE` | Compliance rate (0.0–1.0) | 0.85 (85%) |
+| `--init-only` | Initialize data only, then exit | Off |
 
 ### Examples
 
 ```bash
-# Run with custom interval (every 2 minutes)
+# Generate readings every 2 minutes
 python3 run_sensor_device.py --interval 120
 
-# Monitor specific business with 90% compliance rate
+# Monitor a specific business with 90% compliance
 python3 run_sensor_device.py --business-id 1 --compliance-rate 0.9
 
 # Initialize demo data only
 python3 run_sensor_device.py --init-only
-
-# Using PYTHONPATH method
-PYTHONPATH=. python3 -m app.demo_sensor_device --interval 120
-PYTHONPATH=. python3 -m app.demo_sensor_device --business-id 1 --compliance-rate 0.9
 ```
 
 ## Sensor Types
 
-### Butcher Shop Sensors
-- Temperature sensors for refrigeration units (0-5°C)
-- Temperature sensors for freezer units (-20 to -15°C)
-- Humidity sensors for storage areas (40-70%)
-- Power sensors for backup generators (80-100%)
+### Butcher Shop
 
-### Winery Sensors
-- Temperature sensors for fermentation tanks (10-18°C)
-- Temperature sensors for tasting room (15-25°C)
-- Humidity sensors for storage cellar (50-70%)
-- Power sensors for backup generators (80-100%)
+| Sensor | Type | Normal Range |
+|--------|------|-------------|
+| Refrigeration units | Temperature | 0–5 °C |
+| Freezer units | Temperature | -20 to -15 °C |
+| Storage areas | Humidity | 40–70% |
+| Backup generators | Power | 80–100% |
+
+### Winery
+
+| Sensor | Type | Normal Range |
+|--------|------|-------------|
+| Fermentation tanks | Temperature | 10–18 °C |
+| Tasting room | Temperature | 15–25 °C |
+| Storage cellar | Humidity | 50–70% |
+| Backup generators | Power | 80–100% |
 
 ## Compliance Scoring
 
-The compliance score is calculated using:
+The overall compliance score is a weighted average of:
 
-- **60% Sensor Compliance**: Based on sensor readings being within normal ranges
-- **40% Recommendation Compliance**: Based on recommendations being implemented
+- **Sensor health (60%)** — percentage of sensors reporting readings within normal ranges
+- **Recommendation compliance (40%)** — percentage of recommendations marked as implemented
 
 Rank levels:
-- **Excellent**: ≥90%
-- **Good**: ≥75%
-- **Fair**: ≥60%
-- **Needs Improvement**: <60%
+
+| Rank | Score |
+|------|-------|
+| Excellent | 90% or above |
+| Good | 75–89% |
+| Fair | 60–74% |
+| Needs Improvement | Below 60% |
 
 ## API Endpoints
 
-The sensor data is accessible through the following API endpoints:
-
-- `GET /sensors/readings`: Get sensor readings for current user's business
-- `GET /sensors/compliance`: Get compliance score and ranking
-- `GET /sensors/compliance/ranking`: Get business rankings (top N businesses)
-
-## Frontend Integration
-
-The frontend automatically fetches sensor data and displays:
-- Live sensor readings with status indicators
-- Compliance scores and rankings
-- Business rankings comparison
-- Recommendation compliance status
-
-Data refreshes every 30 seconds automatically.
-
-## Database Setup
-
-Make sure your database is set up and migrations are run:
-
-```bash
-# The tables will be created automatically when the app starts
-# Or manually:
-python -c "from app.database import engine, Base; from app.models.db_models import *; Base.metadata.create_all(bind=engine)"
-```
+| Endpoint | Description |
+|----------|-------------|
+| `GET /sensors/readings` | Sensor readings for the current user's business |
+| `GET /sensors/compliance` | Compliance score and rank |
+| `GET /sensors/recommendations` | All recommendation tracking items |
+| `GET /sensors/compliance/ranking` | Business rankings (admin/insurance only) |
 
 ## Troubleshooting
 
-### No sensor readings appearing
+**No sensor readings appearing**
+1. Run the sensor device at least once with `--init-only`
+2. Verify businesses exist in the database
+3. Check database connection settings in `.env`
 
-1. Make sure the demo sensor device has been run at least once with `--init-only`
-2. Check that businesses exist in the database
-3. Verify database connection settings
+**Rankings not updating**
+1. Ensure the sensor device is running continuously (or via cron)
+2. Confirm sensor readings are being generated
+3. Verify recommendations exist for the business
 
-### Rankings not updating
-
-1. Ensure the sensor device is running continuously
-2. Check that sensor readings are being generated
-3. Verify that recommendations exist for businesses
-
-### Compliance scores seem incorrect
-
+**Compliance scores seem incorrect**
 1. Check the compliance rate setting (default 85%)
 2. Verify sensor readings are within expected ranges
-3. Ensure recommendations are being tracked in the database
+3. Ensure recommendation tracking entries exist in the database

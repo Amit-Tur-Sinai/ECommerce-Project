@@ -229,3 +229,45 @@ class RiskAssessment(Base):
     insurance_company = relationship("InsuranceCompany")
     created_by = relationship("User")
     claim = relationship("Claim", back_populates="risk_assessment", uselist=False)
+
+
+class EmailLog(Base):
+    __tablename__ = "email_logs"
+
+    email_id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.business_id"), nullable=False, index=True)
+    insurance_company_id = Column(Integer, ForeignKey("insurance_companies.insurance_company_id"), nullable=False)
+    recipient_email = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    sent_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    sent_by_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+
+    # Relationships
+    business = relationship("Business")
+    insurance_company = relationship("InsuranceCompany")
+    sent_by = relationship("User")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    notification_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False, index=True)  # recipient (business user)
+    sender_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=True)  # who sent it
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    notification_type = Column(String, nullable=False, default="warning")  # warning, info, etc.
+    is_read = Column(String, nullable=False, default="false")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    sender = relationship("User", foreign_keys=[sender_user_id])
+
+
+class City(Base):
+    __tablename__ = "cities"
+
+    city_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False, index=True)

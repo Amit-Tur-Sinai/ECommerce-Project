@@ -6,11 +6,15 @@ from app.models.db_models import UserRole
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
-    business_name: str
-    store_type: str  # butcher_shop, winery
-    city: str
+    role: str = "Business"  # "Business" or "Insurance"
+    # Business-specific fields (required when role=Business)
+    business_name: Optional[str] = None
+    store_type: Optional[str] = None  # butcher_shop, winery
+    city: Optional[str] = None
     industry: Optional[str] = None
     size: Optional[str] = None
+    # Insurance company (required for Insurance role, optional for Business)
+    insurance_company_id: Optional[int] = None
 
 
 class LoginRequest(BaseModel):
@@ -32,6 +36,8 @@ class UserResponse(BaseModel):
     business_name: Optional[str] = None
     store_type: Optional[str] = None
     city: Optional[str] = None
+    insurance_company_id: Optional[int] = None
+    insurance_company_name: Optional[str] = None
 
     class Config:
         from_attributes = True

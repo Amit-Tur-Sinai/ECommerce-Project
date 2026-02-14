@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +15,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export const LoginForm = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [loginError, setLoginError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -23,11 +25,13 @@ export const LoginForm = () => {
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    setLoginError(null);
     try {
       await login(data.email, data.password);
       navigate('/dashboard');
-    } catch (error) {
-      // Error handling is done in AuthContext
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Incorrect email or password';
+      setLoginError(message);
     }
   };
 
@@ -83,6 +87,12 @@ export const LoginForm = () => {
           </Link>
         </div>
       </div>
+
+      {loginError && (
+        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <p className="text-sm text-red-600 dark:text-red-400">{loginError}</p>
+        </div>
+      )}
 
       <button
         type="submit"

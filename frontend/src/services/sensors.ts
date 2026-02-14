@@ -55,4 +55,19 @@ export const sensorService = {
     });
     return response.data;
   },
+
+  async getRecommendations(): Promise<{
+    recommendations: Array<{
+      tracking_id: number;
+      climate_event: string;
+      recommendation_text: string;
+      status: string;
+      risk_level: string;
+      created_at: string | null;
+      updated_at: string | null;
+    }>;
+  }> {
+    const response = await api.get('/sensors/recommendations');
+    return response.data;
+  },
 };

@@ -11,6 +11,8 @@ export interface BusinessPortfolioItem {
   notes_count: number;
   claims_count: number;
   last_updated: string;
+  policy_threshold: number | null;
+  policy_violated: boolean;
 }
 
 export interface BusinessNote {
@@ -23,29 +25,16 @@ export interface BusinessNote {
   updated_at: string;
 }
 
-export interface Claim {
-  claim_id: number;
-  business_id: number;
-  business_name: string;
-  claim_number: string;
-  claim_amount: number;
-  status: string;
-  description: string;
-  incident_date: string;
-  filed_date: string;
-  compliance_score_at_incident: number | null;
-  risk_assessment_id: number | null;
-}
-
 export interface Policy {
   policy_id: number;
   business_id: number | null;
   business_name: string | null;
   store_type: string | null;
+  city: string | null;
   compliance_threshold: number;
+  current_score: number | null;
+  violated: boolean;
   requirements: Record<string, any> | null;
-  alert_enabled: boolean;
-  alert_threshold: number;
 }
 
 export interface RiskAssessment {
@@ -57,25 +46,13 @@ export interface RiskAssessment {
   recommendations: string | null;
 }
 
-export interface BusinessComparison {
-  business_id: number;
-  business_name: string;
-  store_type: string;
-  city: string;
-  current_score: number;
-  rank_level: string;
-  recommendations_followed: number;
-  recommendations_total: number;
-  trend: Array<{ date: string; score: number }>;
-}
-
 export const insuranceService = {
   async getPortfolio(params?: {
     risk_level?: string;
     store_type?: string;
     min_score?: number;
     max_score?: number;
-  }): Promise<{ businesses: BusinessPortfolioItem[]; total: number }> {
+  }): Promise<{ businesses: BusinessPortfolioItem[]; total: number; violations_count: number }> {
     const response = await api.get('/insurance/portfolio', { params });
     return response.data;
   },
@@ -90,19 +67,8 @@ export const insuranceService = {
     return response.data;
   },
 
-  async getClaims(params?: { business_id?: number; status?: string }): Promise<Claim[]> {
-    const response = await api.get('/insurance/claims', { params });
-    return response.data;
-  },
-
-  async createClaim(data: {
-    business_id: number;
-    claim_amount: number;
-    description: string;
-    incident_date: string;
-  }): Promise<Claim> {
-    const response = await api.post('/insurance/claims', data);
-    return response.data;
+  async deleteNote(note_id: number): Promise<void> {
+    await api.delete(`/insurance/notes/${note_id}`);
   },
 
   async getPolicies(business_id?: number): Promise<Policy[]> {
@@ -117,11 +83,21 @@ export const insuranceService = {
     store_type?: string;
     compliance_threshold: number;
     requirements?: Record<string, any>;
-    alert_enabled: boolean;
-    alert_threshold: number;
   }): Promise<Policy> {
     const response = await api.post('/insurance/policies', data);
     return response.data;
+  },
+
+  async updatePolicy(policy_id: number, data: {
+    compliance_threshold?: number;
+    requirements?: Record<string, any>;
+  }): Promise<Policy> {
+    const response = await api.put(`/insurance/policies/${policy_id}`, data);
+    return response.data;
+  },
+
+  async deletePolicy(policy_id: number): Promise<void> {
+    await api.delete(`/insurance/policies/${policy_id}`);
   },
 
   async createRiskAssessment(data: {
@@ -139,10 +115,30 @@ export const insuranceService = {
     return response.data;
   },
 
-  async compareBusinesses(business_ids: number[]): Promise<{ comparison: BusinessComparison[] }> {
-    const response = await api.get('/insurance/compare', {
-      params: { business_ids: business_ids.join(',') },
-    });
+  async sendViolationNotification(business_id: number): Promise<{
+    message: string;
+    email_id: number;
+    recipient: string;
+    subject: string;
+    body: string;
+    simulated: boolean;
+  }> {
+    const response = await api.post('/insurance/notify-violation', { business_id });
     return response.data;
   },
+
+  async getEmailLogs(business_id: number): Promise<{
+    logs: Array<{
+      email_id: number;
+      recipient_email: string;
+      subject: string;
+      body: string;
+      sent_at: string;
+      sent_by_email: string;
+    }>;
+  }> {
+    const response = await api.get(`/insurance/email-logs/${business_id}`);
+    return response.data;
+  },
+
 };

@@ -35,7 +35,6 @@ export const RISK_LEVEL_LABELS: Record<RiskLevel, string> = {
 
 export const CLIMATE_EVENTS = {
   COLD: 'cold',
-  FOG: 'fog',
   STORM: 'storm',
   HEAT: 'heat',
 } as const;
@@ -44,14 +43,12 @@ export type ClimateEvent = typeof CLIMATE_EVENTS[keyof typeof CLIMATE_EVENTS];
 
 export const CLIMATE_EVENT_LABELS: Record<ClimateEvent, string> = {
   [CLIMATE_EVENTS.COLD]: 'Cold Weather',
-  [CLIMATE_EVENTS.FOG]: 'Fog',
   [CLIMATE_EVENTS.STORM]: 'Storm',
   [CLIMATE_EVENTS.HEAT]: 'Heat Wave',
 };
 
 export const CLIMATE_EVENT_ICONS: Record<ClimateEvent, string> = {
   [CLIMATE_EVENTS.COLD]: '❄️',
-  [CLIMATE_EVENTS.FOG]: '🌫️',
   [CLIMATE_EVENTS.STORM]: '⛈️',
   [CLIMATE_EVENTS.HEAT]: '🔥',
 };

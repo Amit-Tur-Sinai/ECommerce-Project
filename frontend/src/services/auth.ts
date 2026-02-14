@@ -3,11 +3,13 @@ import { api } from './api';
 export interface RegisterData {
   email: string;
   password: string;
-  business_name: string;
-  store_type: string;
-  city: string;
+  role: string; // "Business" or "Insurance"
+  business_name?: string;
+  store_type?: string;
+  city?: string;
   industry?: string;
   size?: string;
+  insurance_company_id?: number;
 }
 
 export interface LoginData {
@@ -23,6 +25,8 @@ export interface User {
   business_name?: string;
   store_type?: string;
   city?: string;
+  insurance_company_id?: number;
+  insurance_company_name?: string;
 }
 
 export interface AuthResponse {

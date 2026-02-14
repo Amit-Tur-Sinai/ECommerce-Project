@@ -7,7 +7,7 @@ from app.database import get_db
 from app.utils.auth import get_current_admin_user
 from app.models.db_models import (
     User, Business, BusinessRanking, InsuranceCompany, BusinessNote,
-    Claim, ClaimStatus, Policy, RiskAssessment, SensorReading, RecommendationTracking, RecommendationStatus
+    Claim, ClaimStatus, Policy, RiskAssessment, SensorReading, RecommendationTracking, RecommendationStatus, EmailLog, Notification
 )
 from pydantic import BaseModel
 from typing import Dict, Any
@@ -57,8 +57,6 @@ class PolicyCreate(BaseModel):
     store_type: Optional[str] = None
     compliance_threshold: float = 75.0
     requirements: Optional[Dict[str, Any]] = None
-    alert_enabled: bool = True
-    alert_threshold: float = 60.0
 
 
 class PolicyResponse(BaseModel):
@@ -68,8 +66,6 @@ class PolicyResponse(BaseModel):
     store_type: Optional[str]
     compliance_threshold: float
     requirements: Optional[Dict[str, Any]]
-    alert_enabled: bool
-    alert_threshold: float
 
 
 class RiskAssessmentCreate(BaseModel):
@@ -138,13 +134,15 @@ def get_insurance_company_id(current_user: User, db: Session) -> int:
 
 
 def calculate_compliance_score_for_business(db: Session, business_id: int) -> Dict[str, Any]:
-    """Calculate compliance score for a business (same logic as sensors endpoint)."""
-    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+    """Calculate compliance score for a business using the same logic as the sensors endpoint.
     
-    recent_readings = db.query(SensorReading).filter(
-        SensorReading.business_id == business_id,
-        SensorReading.timestamp >= cutoff_time
-    ).all()
+    Reuses _get_latest_sensors_for_business so sensor data is deduplicated and
+    includes sensor_type (needed for per-category scoring).
+    """
+    from app.routers.sensors import calculate_compliance_score, _get_latest_sensors_for_business
+    
+    # Use the same deduplicated sensor data as the dashboard/sensors endpoint
+    sensors_data = _get_latest_sensors_for_business(db, business_id)
     
     recommendations = db.query(RecommendationTracking).filter(
         RecommendationTracking.business_id == business_id
@@ -156,23 +154,7 @@ def calculate_compliance_score_for_business(db: Session, business_id: int) -> Di
     )
     recommendations_total = len(recommendations)
     
-    if recent_readings or recommendations:
-        sensors_data = [
-            {
-                "status": r.status,
-                "recommendation_compliance": r.recommendation_compliance == "compliant"
-            }
-            for r in recent_readings
-        ]
-        # Import calculate_compliance_score function
-        from app.routers.sensors import calculate_compliance_score
-        compliance = calculate_compliance_score(sensors_data, recommendations_followed, recommendations_total)
-    else:
-        # Use same calculation function with empty data
-        from app.routers.sensors import calculate_compliance_score
-        compliance = calculate_compliance_score([], recommendations_followed, recommendations_total)
-    
-    return compliance
+    return calculate_compliance_score(sensors_data, recommendations_followed, recommendations_total)
 
 
 @router.get("/portfolio")
@@ -187,16 +169,35 @@ async def get_business_portfolio(
     """Get portfolio of insured businesses with filtering options."""
     insurance_company_id = get_insurance_company_id(current_user, db)
     
-    # Get all businesses (for now, all businesses are available to insurance companies)
-    # In production, this would filter by insurance_company_id
+    # Filter businesses by insurance company (only show businesses linked to this insurer)
     query = db.query(Business)
+    
+    # If not admin, only show businesses linked to this insurance company
+    if current_user.role.value != "Admin":
+        query = query.filter(Business.insurance_company_id == insurance_company_id)
     
     if store_type:
         query = query.filter(Business.store_type == store_type)
     
     businesses = query.all()
     
+    # Pre-load all policies for this insurance company for efficient lookup
+    all_policies = db.query(Policy).filter(
+        Policy.insurance_company_id == insurance_company_id
+    ).all()
+
+    def get_policy_for_business(business_id: int) -> Optional[Policy]:
+        """Find the most specific policy for a business (business-specific > general)."""
+        # First try business-specific policy
+        for p in all_policies:
+            if p.business_id == business_id:
+                return p
+        # No specific policy found
+        return None
+
     portfolio = []
+    violations_count = 0
+
     for business in businesses:
         compliance = calculate_compliance_score_for_business(db, business.business_id)
         
@@ -233,6 +234,13 @@ async def get_business_portfolio(
         if insurance_company_id > 0:
             claims_query = claims_query.filter(Claim.insurance_company_id == insurance_company_id)
         claims_count = claims_query.count()
+
+        # Check policy compliance
+        policy = get_policy_for_business(business.business_id)
+        policy_threshold = policy.compliance_threshold if policy else None
+        policy_violated = policy_threshold is not None and score < policy_threshold
+        if policy_violated:
+            violations_count += 1
         
         portfolio.append({
             "business_id": business.business_id,
@@ -245,12 +253,18 @@ async def get_business_portfolio(
             "notes_count": notes_count,
             "claims_count": claims_count,
             "last_updated": datetime.now(timezone.utc).isoformat(),
+            "policy_threshold": policy_threshold,
+            "policy_violated": policy_violated,
         })
     
     # Sort by compliance score descending
     portfolio.sort(key=lambda x: x["compliance_score"], reverse=True)
     
-    return {"businesses": portfolio, "total": len(portfolio)}
+    return {
+        "businesses": portfolio,
+        "total": len(portfolio),
+        "violations_count": violations_count,
+    }
 
 
 @router.post("/notes", response_model=BusinessNoteResponse)
@@ -354,6 +368,28 @@ async def get_business_notes(
     return {"notes": result}
 
 
+@router.delete("/notes/{note_id}")
+async def delete_business_note(
+    note_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a note."""
+    insurance_company_id = get_insurance_company_id(current_user, db)
+    
+    note = db.query(BusinessNote).filter(BusinessNote.note_id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    # Only allow deletion if the note belongs to the user's insurance company
+    if insurance_company_id > 0 and note.insurance_company_id != insurance_company_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this note")
+    
+    db.delete(note)
+    db.commit()
+    return {"message": "Note deleted successfully"}
+
+
 @router.get("/claims", response_model=List[ClaimResponse])
 async def get_claims(
     current_user: User = Depends(get_current_admin_user),
@@ -447,13 +483,13 @@ async def create_claim(
     )
 
 
-@router.get("/policies", response_model=List[PolicyResponse])
+@router.get("/policies")
 async def get_policies(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
     business_id: Optional[int] = Query(None, description="Filter by business ID"),
 ):
-    """Get policy management settings."""
+    """Get policy management settings with live compliance status."""
     insurance_company_id = get_insurance_company_id(current_user, db)
     
     query = db.query(Policy)
@@ -469,19 +505,28 @@ async def get_policies(
     result = []
     for policy in policies:
         business = None
+        current_score = None
+        city = None
         if policy.business_id:
             business = db.query(Business).filter(Business.business_id == policy.business_id).first()
-        
-        result.append(PolicyResponse(
-            policy_id=policy.policy_id,
-            business_id=policy.business_id,
-            business_name=business.name if business else None,
-            store_type=policy.store_type,
-            compliance_threshold=policy.compliance_threshold,
-            requirements=policy.requirements,
-            alert_enabled=policy.alert_enabled == "true",
-            alert_threshold=policy.alert_threshold,
-        ))
+            if business:
+                compliance = calculate_compliance_score_for_business(db, business.business_id)
+                current_score = compliance["overall_score"]
+                city = business.city
+
+        violated = current_score is not None and current_score < policy.compliance_threshold
+
+        result.append({
+            "policy_id": policy.policy_id,
+            "business_id": policy.business_id,
+            "business_name": business.name if business else None,
+            "store_type": business.store_type if business else policy.store_type,
+            "city": city,
+            "compliance_threshold": policy.compliance_threshold,
+            "current_score": current_score,
+            "violated": violated,
+            "requirements": policy.requirements,
+        })
     
     return result
 
@@ -492,22 +537,32 @@ async def create_policy(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
-    """Create or update a policy."""
+    """Create a policy. Rejects if one already exists for the same business."""
     insurance_company_id = get_insurance_company_id(current_user, db)
+    effective_company_id = insurance_company_id if insurance_company_id > 0 else 1
     
     if policy_data.business_id:
         business = db.query(Business).filter(Business.business_id == policy_data.business_id).first()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
+
+        # Check for existing policy
+        existing = db.query(Policy).filter(
+            Policy.insurance_company_id == effective_company_id,
+            Policy.business_id == policy_data.business_id,
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=f"A policy already exists for this business (Policy #{existing.policy_id}). Please edit the existing policy instead."
+            )
     
     policy = Policy(
-        insurance_company_id=insurance_company_id if insurance_company_id > 0 else 1,
+        insurance_company_id=effective_company_id,
         business_id=policy_data.business_id,
         store_type=policy_data.store_type,
         compliance_threshold=policy_data.compliance_threshold,
         requirements=policy_data.requirements,
-        alert_enabled="true" if policy_data.alert_enabled else "false",
-        alert_threshold=policy_data.alert_threshold,
     )
     db.add(policy)
     db.commit()
@@ -524,9 +579,73 @@ async def create_policy(
         store_type=policy.store_type,
         compliance_threshold=policy.compliance_threshold,
         requirements=policy.requirements,
-        alert_enabled=policy.alert_enabled == "true",
-        alert_threshold=policy.alert_threshold,
     )
+
+
+class PolicyUpdate(BaseModel):
+    compliance_threshold: Optional[float] = None
+    requirements: Optional[Dict[str, Any]] = None
+
+
+@router.put("/policies/{policy_id}", response_model=PolicyResponse)
+async def update_policy(
+    policy_id: int,
+    policy_data: PolicyUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Update an existing policy's threshold or requirements."""
+    insurance_company_id = get_insurance_company_id(current_user, db)
+
+    policy = db.query(Policy).filter(Policy.policy_id == policy_id).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    if current_user.role.value != "Admin" and policy.insurance_company_id != insurance_company_id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this policy")
+
+    if policy_data.compliance_threshold is not None:
+        policy.compliance_threshold = policy_data.compliance_threshold
+    if policy_data.requirements is not None:
+        policy.requirements = policy_data.requirements
+
+    db.commit()
+    db.refresh(policy)
+
+    business = None
+    if policy.business_id:
+        business = db.query(Business).filter(Business.business_id == policy.business_id).first()
+
+    return PolicyResponse(
+        policy_id=policy.policy_id,
+        business_id=policy.business_id,
+        business_name=business.name if business else None,
+        store_type=policy.store_type,
+        compliance_threshold=policy.compliance_threshold,
+        requirements=policy.requirements,
+    )
+
+
+@router.delete("/policies/{policy_id}")
+async def delete_policy(
+    policy_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a policy."""
+    insurance_company_id = get_insurance_company_id(current_user, db)
+
+    policy = db.query(Policy).filter(Policy.policy_id == policy_id).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    # Only allow deletion if the policy belongs to the user's insurance company
+    if current_user.role.value != "Admin" and policy.insurance_company_id != insurance_company_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this policy")
+
+    db.delete(policy)
+    db.commit()
+    return {"message": "Policy deleted successfully"}
 
 
 @router.post("/risk-assessments", response_model=Dict[str, Any])
@@ -640,3 +759,180 @@ async def compare_businesses(
         })
     
     return {"comparison": comparison}
+
+
+# =========================
+# Email Notification Endpoints
+# =========================
+
+class NotifyViolationRequest(BaseModel):
+    business_id: int
+
+
+@router.post("/notify-violation")
+async def notify_violation(
+    request: NotifyViolationRequest,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Send a policy violation warning email to a business.
+
+    In POC mode (SEND_REAL_EMAILS=False), the email is logged to the database
+    and printed to the console. When SEND_REAL_EMAILS=True, it is also sent via SMTP.
+    """
+    from app.config import SEND_REAL_EMAILS, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM
+
+    insurance_company_id = get_insurance_company_id(current_user, db)
+
+    # Look up business
+    business = db.query(Business).filter(Business.business_id == request.business_id).first()
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    # Find the policy for this business
+    policy = db.query(Policy).filter(
+        Policy.insurance_company_id == insurance_company_id,
+        Policy.business_id == business.business_id,
+    ).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="No policy found for this business")
+
+    # Calculate current compliance
+    compliance = calculate_compliance_score_for_business(db, business.business_id)
+    current_score = compliance["overall_score"]
+
+    if current_score >= policy.compliance_threshold:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Business is compliant ({current_score}% >= {policy.compliance_threshold}%). No warning needed."
+        )
+
+    # Find the business owner's email (if any)
+    business_user = db.query(User).filter(User.business_id == business.business_id).first()
+    recipient_email = business_user.email if business_user else f"{business.name.lower().replace(' ', '.')}@example.com"
+
+    # Compose the email
+    gap = round(current_score - policy.compliance_threshold, 1)
+    categories = compliance.get("category_scores", {})
+    weak_categories = [
+        cat.replace("_", " ").title()
+        for cat, score in categories.items()
+        if score < 70
+    ]
+
+    subject = f"Compliance Warning: {business.name} is below policy threshold"
+
+    body = (
+        f"Dear {business.name} team,\n\n"
+        f"This is a compliance warning from your insurance provider (State Farm).\n\n"
+        f"Your current compliance score is {current_score}%, which is below the "
+        f"required policy threshold of {policy.compliance_threshold}% (gap: {gap}%).\n\n"
+    )
+    if weak_categories:
+        body += "The following areas need attention:\n"
+        for cat in weak_categories:
+            cat_key = cat.lower().replace(" ", "_")
+            cat_score = categories.get(cat_key, 0)
+            body += f"  - {cat}: {cat_score}%\n"
+        body += "\n"
+    body += (
+        "Please take immediate action to improve your compliance score to avoid "
+        "potential policy adjustments.\n\n"
+        "Actions you can take:\n"
+        "  1. Review and implement pending recommendations on your dashboard\n"
+        "  2. Ensure all sensors are operational and within normal ranges\n"
+        "  3. Contact your insurance agent if you need assistance\n\n"
+        "Best regards,\n"
+        "Canopy Risk Management Platform"
+    )
+
+    # Save email log to database
+    email_log = EmailLog(
+        business_id=business.business_id,
+        insurance_company_id=insurance_company_id,
+        recipient_email=recipient_email,
+        subject=subject,
+        body=body,
+        sent_by_user_id=current_user.user_id,
+    )
+    db.add(email_log)
+
+    # Create an in-app notification for the business user
+    if business_user:
+        notification = Notification(
+            user_id=business_user.user_id,
+            sender_user_id=current_user.user_id,
+            title=subject,
+            message=body,
+            notification_type="warning",
+        )
+        db.add(notification)
+
+    db.commit()
+    db.refresh(email_log)
+
+    # Send or simulate
+    if SEND_REAL_EMAILS:
+        # Real SMTP sending (disabled for now — set SEND_REAL_EMAILS=True in config.py)
+        try:
+            import smtplib
+            import ssl
+            from email.message import EmailMessage
+
+            msg = EmailMessage()
+            msg["Subject"] = subject
+            msg["From"] = SMTP_FROM
+            msg["To"] = recipient_email
+            msg.set_content(body)
+
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(SMTP_HOST, 465, context=context) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="Failed to send email: {}".format(str(e)))
+    else:
+        print(f"\n{'='*60}")
+        print(f"[EMAIL SIMULATED] (SEND_REAL_EMAILS=False)")
+        print(f"  To: {recipient_email}")
+        print(f"  Subject: {subject}")
+        print(f"  Body preview: {body[:200]}...")
+        print(f"{'='*60}\n")
+
+    return {
+        "message": "Warning email sent successfully",
+        "email_id": email_log.email_id,
+        "recipient": recipient_email,
+        "subject": subject,
+        "body": body,
+        "simulated": not SEND_REAL_EMAILS,
+    }
+
+
+@router.get("/email-logs/{business_id}")
+async def get_email_logs(
+    business_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Get email notification history for a business."""
+    insurance_company_id = get_insurance_company_id(current_user, db)
+
+    logs = db.query(EmailLog).filter(
+        EmailLog.business_id == business_id,
+        EmailLog.insurance_company_id == insurance_company_id,
+    ).order_by(desc(EmailLog.sent_at)).all()
+
+    result = []
+    for log in logs:
+        sent_by = db.query(User).filter(User.user_id == log.sent_by_user_id).first()
+        result.append({
+            "email_id": log.email_id,
+            "recipient_email": log.recipient_email,
+            "subject": log.subject,
+            "body": log.body,
+            "sent_at": log.sent_at.isoformat(),
+            "sent_by_email": sent_by.email if sent_by else "Unknown",
+        })
+
+    return {"logs": result}

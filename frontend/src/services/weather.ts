@@ -10,7 +10,6 @@ export interface Recommendation {
 
 export interface WeatherProbabilities {
   cold: number;
-  fog: number;
   storm: number;
   heat: number;
 }
@@ -41,7 +40,6 @@ export const weatherService = {
     // This is a placeholder - adjust based on actual API response
     return {
       cold: 0,
-      fog: 0,
       storm: 0,
       heat: 0,
     };
