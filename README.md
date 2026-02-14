@@ -26,71 +26,9 @@ Please download the video files to view the demonstrations.
 | **Compliance scores** | Calculated from stored sensors + recommendations | On read (deterministic) |
 | **Business rankings** | Derived from compliance data | Updated with sensor generation |
 
-### Daily Data Pipeline
+### Model Selection
 
-The following scheduled jobs run daily to keep data fresh:
-
-1. **Weather data ingestion** (`daily_ingest_all_cities.py`) - Fetches yesterday's weather from OpenMeteo API
-2. **Sensor data generation** (`daily_sensor_generation.py`) - Generates deterministic sensor readings per business
-3. **Recommendations** - Generated from weather model predictions + AI explanation API
-
-> **Note:** The sensor data generation is currently a **placeholder for real IoT integration**. In production, this would be replaced by real sensor data received via an API endpoint. See `backend/app/daily_sensor_generation.py` for details.
-
-### Recommendation System
-
-- Recommendations are based on the ML weather model predictions + AI-generated explanations
-- **High/Critical risk**: Up to 5 recommendations
-- **Medium risk**: Up to 3 recommendations
-- **Low risk**: Up to 1 recommendation
-- Recommendations use the user's registered city and store type
-
-### Compliance Score Calculation
-
-The compliance score measures how well a business follows weather risk guidelines. It combines two components:
-
-**Overall Score = (Sensor Score × 60%) + (Recommendation Score × 40%)**
-
-| Component | Weight | How it's calculated |
-|-----------|--------|-------------------|
-| **Sensor Score** | 60% | Percentage of sensors in "normal" status (from the last 24 hours) |
-| **Recommendation Score** | 40% | Percentage of recommendations marked as "Implemented" |
-
-**Rank Levels:**
-
-| Score | Rank |
-|-------|------|
-| 90–100 | Excellent |
-| 75–89 | Good |
-| 60–74 | Fair |
-| 0–59 | Needs Improvement |
-| No data | No Data |
-
-**Example:** A butcher shop called *"Brooklyn Fresh Meats"* has 5 sensors and 9 recommendations:
-
-- 4 out of 5 sensors are in normal status → Sensor Score = 80%
-- 6 out of 9 recommendations are implemented → Recommendation Score = 66.7%
-- **Overall = (80 × 0.6) + (66.7 × 0.4) = 48 + 26.7 = 74.7 → "Fair"**
-
-The score is calculated **on-the-fly** every time the dashboard loads (via `GET /sensors/compliance`), using stored sensor readings and recommendation tracking data. This ensures scores are always deterministic and consistent.
-
-#### Demo Data on Registration
-
-When `GENERATE_DEMO_DATA_ON_REGISTER` is set to `True` in `backend/app/config.py` (default for POC), new business users automatically receive:
-
-- **5 sensor readings** (tailored to their store type — butcher shop or winery)
-- **9 recommendation tracking entries** (6 implemented, 3 pending)
-- **A calculated compliance ranking**
-
-Set this flag to `False` in production when real sensor data is available.
-
-### Authentication
-
-The app uses **JWT (JSON Web Tokens)** for authentication:
-
-- On login/register, the backend verifies credentials (hashed with **bcrypt**) and returns a JWT token
-- The frontend stores the token in `localStorage` and attaches it to every API request via an Axios interceptor (`Authorization: Bearer <token>`)
-- Protected backend endpoints decode the token to identify the user; invalid/expired tokens return 401
-- **Role-based access control** — `Business` users see the Dashboard, Analytics, Sensors, and Inbox; `Insurance`/`Admin` users see the Portfolio, Policies, and Admin Dashboard
+The model selection process for weather prediction, including the evaluation and comparison of different machine learning algorithms, can be found in the `notebooks/Model_Selection_Notebook.ipynb` file. This notebook contains the detailed analysis, hyperparameter tuning, and performance metrics that led to the selection of **XGBoost** as the final model for predicting cold, storm, and heat events.
 
 ### Policy Management
 
@@ -139,32 +77,6 @@ A daily report will be sent to each user at 7-8 AM containing:
 
 For now, the dashboard itself serves as the daily view.
 
-## Architecture: Data Persistence
-
-**All data in Canopy is persistent and deterministic.** Nothing is randomly generated on page load or refresh. Every piece of data the user sees comes from the database:
-
-| Data Type | Source | Update Frequency |
-|-----------|--------|-----------------|
-| **Weather predictions** | ML models (XGBoost) + OpenMeteo API | Daily ingestion |
-| **Recommendations** | Weather model + AI API (Qwen) | Daily generation |
-| **Sensor readings** | Daily sensor generation job | Once per day (6 AM) |
-| **Compliance scores** | Calculated from stored sensors + recommendations | On read (deterministic) |
-| **Business rankings** | Derived from compliance data | Updated with sensor generation |
-
-### Model Selection
-
-The model selection process for weather prediction, including the evaluation and comparison of different machine learning algorithms, can be found in the `notebooks/Model_Selection_Notebook.ipynb` file. This notebook contains the detailed analysis, hyperparameter tuning, and performance metrics that led to the selection of **XGBoost** as the final model for predicting cold, storm, and heat events.
-
-### Daily Data Pipeline
-
-The following scheduled jobs run daily to keep data fresh:
-
-1. **Weather data ingestion** (`daily_ingest_all_cities.py`) - Fetches yesterday's weather from OpenMeteo API
-2. **Sensor data generation** (`daily_sensor_generation.py`) - Generates deterministic sensor readings per business
-3. **Recommendations** - Generated from weather model predictions + AI explanation API
-
-> **Note:** The sensor data generation is currently a **placeholder for real IoT integration**. In production, this would be replaced by real sensor data received via an API endpoint. See `backend/app/daily_sensor_generation.py` for details.
-
 ### Recommendation System
 
 - Recommendations are based on the ML weather model predictions + AI-generated explanations
@@ -211,14 +123,6 @@ When `GENERATE_DEMO_DATA_ON_REGISTER` is set to `True` in `backend/app/config.py
 - **A calculated compliance ranking**
 
 Set this flag to `False` in production when real sensor data is available.
-
-### Daily Report (Planned Feature)
-
-A daily report will be sent to each user at 7-8 AM containing:
-- Weather forecast for their city
-- Active recommendations (same as dashboard view)
-
-For now, the dashboard itself serves as the daily view.
 
 ## Project Structure
 
