@@ -89,7 +89,7 @@ python app/train_model.py
 
 ```bash
 cd backend
-python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 You should see:
@@ -208,7 +208,7 @@ ECommerce-Project/
 lsof -ti:8000 | xargs kill -9
 
 # Or use a different port
-python3 -m uvicorn main:app --reload --port 8001
+python -m uvicorn main:app --reload --port 8001
 ```
 
 **Database connection error:**
@@ -291,7 +291,7 @@ python app/db_setup.py
 ### Backend
 ```bash
 cd backend
-python3 -m uvicorn main:app --reload --port 8000   # Start server
+python -m uvicorn main:app --reload --port 8000   # Start server
 python app/init_db.py                               # Initialize DB
 python app/db_setup.py                              # Load weather data
 python app/train_model.py                           # Train models
