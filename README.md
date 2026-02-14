@@ -1,108 +1,101 @@
-# Weather Prediction Data Pipeline
+# Weather Risk Recommendations App
 
-This module manages the data engineering and machine learning lifecycle for the Weather Prediction feature. It handles database initialization, model training (XGBoost), and daily data ingestion.
+A comprehensive weather risk assessment platform that helps businesses protect themselves from weather-related risks using AI-powered predictions and actionable recommendations.
+
+## 🌟 Features
+
+- **Weather Risk Assessment** - AI-powered predictions for cold, fog, storm, and heat events
+- **Business-Specific Recommendations** - Tailored advice for different business types (butcher shops, wineries, etc.)
+- **Real-time Dashboard** - Monitor weather risks and compliance scores
+- **Interactive Weather Map** - Visualize risks across multiple locations
+- **Forecast Timeline** - 7-14 day weather forecasts with probability trends
+- **Cost Savings Calculator** - Estimate savings from following recommendations
+- **Export & Reports** - Generate PDF and CSV reports
+- **Sensor Monitoring** - Track compliance with sensor data
+- **Multi-role Support** - Business users, Insurance agents, and Admins
 
 ## 📂 Project Structure
 
-This folder should be placed in the backend root.
-
-```text
-app/
-├── db_setup.py           # 1. Bootstraps the DB with historical CSV data
-├── train_model.py        # 2. Trains XGBoost models & saves .joblib artifacts
-├── daily_ingest.py       # 3. Fetches yesterday's data, calculates features, inserts to DB
-├── models/               # (Auto-generated) Stores the trained model files
-
-🚀 Local Developer Setup
-1. Prerequisites
-Python 3.9+
-
-PostgreSQL installed locally
-
-The final_processed_weather_data.csv file must be present in the root.
-
-2. Install Dependencies
-Bash
-
-pip install -r requirements.txt
-3. Environment Variables (.env)
-Create a .env file in the project root to configure your database connection. Note: This file is git-ignored. Do not commit it.
-
-Ini, TOML
-
-# .env content
-DB_USER=postgres
-DB_PASSWORD=your_local_password
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=weather_app
-
-# Path to the seed data file
-CSV_PATH=final_processed_weather_data.csv
-4. Initialize the Database
-Run this script once to create the table and load the historical data from the CSV.
-
-Bash
-
-python app/db_setup.py
-Output: ✅ Database ready.
-
-5. Generate Models
-Run this script to train the models. It reads from the DB and creates 4 artifacts in app/models/:
-
-has_cold.joblib
-
-has_fog.joblib
-
-has_storm.joblib
-
-has_heat.joblib
-
-Bash
-
-python app/train_model.py
-☁️ Production Deployment Guide
-1. Database Setup
-Provision a PostgreSQL database (RDS, Supabase, Neon).
-
-Add the Environment Variables (DB_USER, DB_HOST, etc.) to the cloud provider's dashboard.
-
-2. Bootstrapping
-On the first deployment, the database will be empty. You must run the setup script via the server's console or build command:
-
-Bash
-
-python app/db_setup.py
-This requires final_processed_weather_data.csv to be present in the repository.
-
-3. Model Serving
-The backend API should load the models using joblib.
-
-Python
-
-import joblib
-import pandas as pd
-
-# Example Loading Logic
-models = {
-    "cold": joblib.load("app/models/has_cold.joblib"),
-    "fog":  joblib.load("app/models/has_fog.joblib"),
-    "storm": joblib.load("app/models/has_storm.joblib")
-}
-
-def predict(features: dict):
-    # Ensure features match the order in models[key]['features']
-    # Return probabilities...
-4. Daily Updates (Cron Job)
-To keep the model up-to-date, schedule daily_ingest.py to run once every 24 hours (e.g., at 02:00 UTC).
-
-It fetches yesterday's actuals from OpenMeteo.
-
-It calculates rolling features based on DB history.
-
-It inserts the new row into the DB.
-
-Bash
-
-python app/daily_ingest.py
 ```
+ECommerce-Project/
+├── backend/              # Python FastAPI backend
+│   ├── app/             # Application code
+│   │   ├── routers/    # API endpoints
+│   │   ├── models/     # Database & ML models
+│   │   └── ...
+│   ├── main.py         # FastAPI entry point
+│   └── requirements.txt
+│
+├── frontend/            # React TypeScript frontend
+│   ├── src/
+│   │   ├── pages/      # Page components
+│   │   ├── components/ # Reusable components
+│   │   └── ...
+│   └── package.json
+│
+└── docs/               # Documentation
+    ├── SETUP.md        # Complete setup guide
+    ├── backend-README.md
+    ├── frontend-README.md
+    └── SENSOR_DEVICE.md
+```
+
+## 🚀 Quick Start
+
+**See [SETUP.md](./docs/SETUP.md) for complete setup instructions.**
+
+### Quick Commands
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+python app/init_db.py
+python app/db_setup.py
+python app/train_model.py
+python3 -m uvicorn main:app --reload --port 8000
+
+# Frontend (new terminal)
+cd frontend
+npm install --legacy-peer-deps
+npm run dev
+```
+
+Visit http://localhost:3000 to see the application.
+
+## 📖 Documentation
+
+- **[SETUP.md](./docs/SETUP.md)** - Complete setup and installation guide
+- **[Backend README](./docs/backend-README.md)** - Backend API documentation
+- **[Frontend README](./docs/frontend-README.md)** - Frontend documentation
+- **[Sensor Device](./docs/SENSOR_DEVICE.md)** - Sensor device setup
+
+## 🛠️ Technology Stack
+
+### Backend
+- **FastAPI** - Modern Python web framework
+- **PostgreSQL** - Relational database
+- **SQLAlchemy** - ORM
+- **XGBoost** - Machine learning models
+- **JWT** - Authentication
+
+### Frontend
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
+- **React Query** - Data fetching
+- **Recharts** - Data visualization
+- **Leaflet** - Interactive maps
+
+## 📝 License
+
+[Add your license here]
+
+## 👥 Founders
+
+- Amit Tur Sinai
+- Neri Nigberg
+- Nitzan Melchior
+- Yael Tokolovsky
+- Yovel Hatan

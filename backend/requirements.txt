@@ -1,7 +1,7 @@
-fastapi==0.115.5
+fastapi[standard]==0.128.0
+pydantic==2.11.2
 uvicorn[standard]
 sqlalchemy==2.0.36
-pydantic==2.11.2
 python-dotenv==1.0.0
 pandas==2.1.4
 psycopg2-binary==2.9.6
@@ -12,4 +12,4 @@ requests==2.31.0
 openrouter
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.6
+python-multipart

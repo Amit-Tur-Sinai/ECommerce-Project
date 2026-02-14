@@ -88,7 +88,7 @@ export const AboutUsPage = () => {
                 Our Mission
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
-                WeatherRisk was born from the need to help businesses make
+                Canopy was born from the need to help businesses make
                 data-driven decisions about weather-related risks. We combine
                 advanced machine learning models with real-time weather data to
                 provide actionable insights that protect businesses and their
@@ -126,7 +126,7 @@ export const AboutUsPage = () => {
                 Our Founders
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-400">
-                Meet the team behind WeatherRisk
+                Meet the team behind Canopy
               </p>
             </div>
           </ScrollSection>
