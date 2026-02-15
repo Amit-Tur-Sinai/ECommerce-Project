@@ -13,6 +13,9 @@ from app.database import engine, Base, SessionLocal
 from app.models import db_models  # Import models to register them
 from app.models.db_models import InsuranceCompany, Business, Policy, User, UserRole, City
 from app.utils.auth import get_password_hash
+from app.constants import DEMO_BUSINESSES, DEMO_SEED_DATE
+from app.daily_sensor_generation import generate_initial_compliance_data
+from app.models.db_models import SensorReading
 from sqlalchemy import text
 
 
@@ -49,17 +52,8 @@ def seed_data():
 
         # 2. Create diverse demo businesses linked to the insurance company
         # NOTE: All cities must exist in the cities table (sourced from weather_processed)
-        demo_businesses = [
-            {"name": "Amarillo Prime Cuts", "store_type": "butcher_shop", "city": "Amarillo", "industry": "Food & Beverage", "size": "small"},
-            {"name": "Columbus Fine Wines", "store_type": "winery", "city": "Columbus", "industry": "Agriculture & Wine", "size": "large"},
-            {"name": "Tacoma Meats & Deli", "store_type": "butcher_shop", "city": "Tacoma", "industry": "Food & Beverage", "size": "medium"},
-            {"name": "Fairfield Estate Winery", "store_type": "winery", "city": "Fairfield", "industry": "Agriculture & Wine", "size": "medium"},
-            {"name": "Georgetown Butcher Co.", "store_type": "butcher_shop", "city": "Georgetown", "industry": "Food & Beverage", "size": "small"},
-            {"name": "Portland Valley Wines", "store_type": "winery", "city": "Portland", "industry": "Agriculture & Wine", "size": "large"},
-        ]
-
         created_businesses = 0
-        for biz_data in demo_businesses:
+        for biz_data in DEMO_BUSINESSES:
             existing = db.query(Business).filter(Business.name == biz_data["name"]).first()
             if not existing:
                 business = Business(
@@ -71,13 +65,26 @@ def seed_data():
                     insurance_company_id=1,
                 )
                 db.add(business)
+                db.flush()
+                generate_initial_compliance_data(db, business, seed_date=DEMO_SEED_DATE)
                 created_businesses += 1
-        
+
         if created_businesses > 0:
-            db.flush()
             print(f"✅ Created {created_businesses} demo businesses linked to State Farm")
         else:
             print("ℹ️  Demo businesses already exist")
+
+        # Backfill: existing demo businesses that have no compliance data yet
+        for biz_data in DEMO_BUSINESSES:
+            business = db.query(Business).filter(Business.name == biz_data["name"]).first()
+            if not business:
+                continue
+            has_readings = db.query(SensorReading).filter(
+                SensorReading.business_id == business.business_id
+            ).first() is not None
+            if not has_readings:
+                generate_initial_compliance_data(db, business, seed_date=DEMO_SEED_DATE)
+                print(f"✅ Backfilled compliance data for demo business '{business.name}'")
 
         # 3. Create default policies for each risk type
         risk_types = [

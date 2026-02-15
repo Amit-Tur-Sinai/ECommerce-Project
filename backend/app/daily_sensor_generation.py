@@ -38,6 +38,7 @@ from app.models.db_models import (
     Business, SensorReading, RecommendationTracking,
     BusinessRanking, RecommendationStatus
 )
+from app.constants import DEMO_BUSINESS_NAMES
 
 
 # Sensor definitions per business type
@@ -146,6 +147,7 @@ def generate_sensor_readings_for_business(
 def run_daily_sensor_generation(db: Session, target_date: datetime = None):
     """
     Main entry point: generate sensor readings for all businesses.
+    Skips demo businesses (seed-only; one generation that does not change over time).
     
     # TODO: Replace with real IoT sensor data ingestion
     # In production, this would be replaced by real-time data from IoT devices.
@@ -155,10 +157,13 @@ def run_daily_sensor_generation(db: Session, target_date: datetime = None):
     
     businesses = db.query(Business).all()
     total_readings = 0
+    non_demo = [b for b in businesses if b.name not in DEMO_BUSINESS_NAMES]
     
-    print(f"[{target_date.strftime('%Y-%m-%d %H:%M')}] Generating sensor data for {len(businesses)} businesses...")
+    print(f"[{target_date.strftime('%Y-%m-%d %H:%M')}] Generating sensor data for {len(non_demo)} businesses (excluding {len(businesses) - len(non_demo)} demo)...")
     
     for business in businesses:
+        if business.name in DEMO_BUSINESS_NAMES:
+            continue
         readings = generate_sensor_readings_for_business(business, target_date)
         
         for reading_data in readings:
@@ -180,7 +185,7 @@ def run_daily_sensor_generation(db: Session, target_date: datetime = None):
         _update_business_ranking(db, business)
     
     db.commit()
-    print(f"  Generated {total_readings} sensor readings for {len(businesses)} businesses.")
+    print(f"  Generated {total_readings} sensor readings for {len(non_demo)} businesses.")
     return total_readings
 
 
@@ -225,7 +230,11 @@ def _update_business_ranking(db: Session, business: Business):
         db.add(ranking)
 
 
-def generate_initial_compliance_data(db: Session, business: Business):
+def generate_initial_compliance_data(
+    db: Session,
+    business: Business,
+    seed_date: datetime = None,
+):
     """
     Generate initial demo compliance data for a newly registered business.
     
@@ -234,9 +243,15 @@ def generate_initial_compliance_data(db: Session, business: Business):
     - Recommendation tracking entries (some implemented, some pending)
     - Business ranking entry
     
-    This is gated by the GENERATE_DEMO_DATA_ON_REGISTER feature flag.
+    When seed_date is provided (e.g. for demo businesses), sensor timestamps use
+    that date so data is deterministic and stable. Otherwise uses current time.
+    Idempotent: skips if business already has sensor readings.
     """
-    now = datetime.now(timezone.utc)
+    # Idempotent: do not duplicate data if already present (e.g. backfill)
+    if db.query(SensorReading).filter(SensorReading.business_id == business.business_id).first():
+        return
+
+    now = seed_date if seed_date is not None else datetime.now(timezone.utc)
 
     # 1. Generate sensor readings
     readings = generate_sensor_readings_for_business(business, now)

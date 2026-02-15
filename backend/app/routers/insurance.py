@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from app.database import get_db
 from app.utils.auth import get_current_admin_user
+from app.constants import DEMO_BUSINESS_NAMES, DEMO_SENSOR_HOURS
 from app.models.db_models import (
     User, Business, BusinessRanking, InsuranceCompany, BusinessNote,
     Claim, ClaimStatus, Policy, RiskAssessment, SensorReading, RecommendationTracking, RecommendationStatus, EmailLog, Notification
@@ -138,11 +139,13 @@ def calculate_compliance_score_for_business(db: Session, business_id: int) -> Di
     
     Reuses _get_latest_sensors_for_business so sensor data is deduplicated and
     includes sensor_type (needed for per-category scoring).
+    Demo businesses use a 1-year window so their one-time seed data stays visible.
     """
     from app.routers.sensors import calculate_compliance_score, _get_latest_sensors_for_business
-    
-    # Use the same deduplicated sensor data as the dashboard/sensors endpoint
-    sensors_data = _get_latest_sensors_for_business(db, business_id)
+
+    business = db.query(Business).filter(Business.business_id == business_id).first()
+    hours = DEMO_SENSOR_HOURS if (business and business.name in DEMO_BUSINESS_NAMES) else 24
+    sensors_data = _get_latest_sensors_for_business(db, business_id, hours=hours)
     
     recommendations = db.query(RecommendationTracking).filter(
         RecommendationTracking.business_id == business_id
